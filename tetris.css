@@ -1192,7 +1192,7 @@ body {
 
     bottom:
         calc(
-            45px +
+           65px +
             env(safe-area-inset-bottom)
         );
 
