@@ -2120,14 +2120,30 @@ function pauseGame() {
 
 function restartGame() {
 
-    if (bgMusic) {
-
-        bgMusic.currentTime = 0;
-
-    }
-
+if (!gameRunning) {
 
     startGame();
+
+    return;
+
+}
+
+
+showOverlay(
+
+    "Restart?",
+
+    "Your current game will be lost.",
+
+    "Yes, Restart"
+
+);
+
+
+document.getElementById(
+    "overlayCancel"
+).style.display =
+    "block";
 
 }
 
