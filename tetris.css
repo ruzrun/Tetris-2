@@ -1190,7 +1190,7 @@ body {
 
     bottom:
         calc(
-            30px +
+            5px +
             env(safe-area-inset-bottom)
         );
 
