@@ -63,6 +63,124 @@ bgMusic.volume = 0.45;
 gameOverSound.volume = 0.7;
 lineClearSound.volume = 0.65;
 
+/* =====================================================
+new
+===================================================== */
+
+let sandSpatialGrid = new Map();
+
+function getSpatialKey(x, y) {
+
+    const gx =
+        Math.floor(x / 8);
+
+    const gy =
+        Math.floor(y / 8);
+
+    return gx + "," + gy;
+
+}
+
+
+function rebuildSandSpatialGrid() {
+
+    sandSpatialGrid.clear();
+
+
+    for (
+        const particle of sandParticles
+    ) {
+
+        const key =
+            getSpatialKey(
+                particle.x,
+                particle.y
+            );
+
+
+        let bucket =
+            sandSpatialGrid.get(key);
+
+
+        if (!bucket) {
+
+            bucket = [];
+
+            sandSpatialGrid.set(
+                key,
+                bucket
+            );
+
+        }
+
+
+        bucket.push(
+            particle
+        );
+
+    }
+
+}
+
+
+function getNearbyParticles(
+    particle
+) {
+
+    const results = [];
+
+    const gx =
+        Math.floor(
+            particle.x / 8
+        );
+
+    const gy =
+        Math.floor(
+            particle.y / 8
+        );
+
+
+    for (
+        let yy = -1;
+        yy <= 1;
+        yy++
+    ) {
+
+        for (
+            let xx = -1;
+            xx <= 1;
+            xx++
+        ) {
+
+            const bucket =
+                sandSpatialGrid.get(
+                    (
+                        gx + xx
+                    ) +
+                    "," +
+                    (
+                        gy + yy
+                    )
+                );
+
+
+            if (bucket) {
+
+                results.push(
+                    ...bucket
+                );
+
+            }
+
+        }
+
+    }
+
+
+    return results;
+
+}
+
 
 /* =====================================================
    SOUND BUTTON
