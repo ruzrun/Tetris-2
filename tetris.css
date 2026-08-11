@@ -1467,6 +1467,8 @@ and (max-height: 650px) {
 
 .game-wrapper {
 
+    transform: translateY(-80px);
+
     padding-top:
         calc(
             45px +
@@ -1517,6 +1519,18 @@ and (max-height: 650px) {
 .restart-btn {
 
     min-height: 28px;
+
+}
+
+/* =====================================================
+   MOBILE: MOVE GAME AREA UP
+===================================================== */
+
+@media (max-width: 768px) {
+
+    .game-wrapper {
+        transform: translateY(-80px);
+    }
 
 }
 
