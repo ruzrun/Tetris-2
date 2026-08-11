@@ -921,6 +921,8 @@ body {
 
 .game-wrapper {
 
+    transform: translateY(-80px);
+
     position: fixed;
 
     inset: 0;
