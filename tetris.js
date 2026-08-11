@@ -1029,23 +1029,24 @@ function findConnectedGroup(
 
 }
 
-
 /* =====================================================
-   CHECK COLOUR CONNECTION
+   CHECK WALL-TO-WALL COLOUR CONNECTION
 ===================================================== */
 
 function checkSandConnections() {
 
     const visited =
         new Uint8Array(
-            SAND_COLS *
-            SAND_ROWS
+            SAND_COLS * SAND_ROWS
         );
-
 
     let totalCleared = 0;
     let groupsCleared = 0;
 
+
+    /*
+       Search every sand group.
+    */
 
     for (
         let y = 0;
@@ -1060,25 +1061,23 @@ function checkSandConnections() {
         ) {
 
             const index =
-                sandIndex(
-                    x,
-                    y
-                );
+                sandIndex(x, y);
 
 
-            if (
-                visited[index]
-            ) {
+            if (visited[index]) {
                 continue;
             }
 
 
-            if (
-                !isSand(x, y)
-            ) {
+            if (!isSand(x, y)) {
                 continue;
             }
 
+
+            /*
+               Find the complete connected
+               same-colour group.
+            */
 
             const group =
                 findConnectedGroup(
@@ -1088,34 +1087,62 @@ function checkSandConnections() {
                 );
 
 
+            if (group.length === 0) {
+                continue;
+            }
+
+
             /*
-               Find how many DIFFERENT
-               Tetris pieces are inside
-               this same-colour group.
+               Check whether this group
+               touches the LEFT wall.
             */
 
-            const pieceIds =
-                new Set();
+            let touchesLeftWall = false;
+
+
+            /*
+               Check whether this group
+               touches the RIGHT wall.
+            */
+
+            let touchesRightWall = false;
 
 
             for (
-                const [
-                    gx,
-                    gy
-                ]
+                const [gx, gy]
                 of group
             ) {
 
-                const id =
-                    getSandPieceId(
-                        gx,
-                        gy
-                    );
+                if (
+                    gx === 0
+                ) {
+
+                    touchesLeftWall = true;
+
+                }
 
 
-                if (id) {
+                if (
+                    gx === SAND_COLS - 1
+                ) {
 
-                    pieceIds.add(id);
+                    touchesRightWall = true;
+
+                }
+
+
+                /*
+                   If both walls have already
+                   been reached, we don't need
+                   to keep checking.
+                */
+
+                if (
+                    touchesLeftWall &&
+                    touchesRightWall
+                ) {
+
+                    break;
 
                 }
 
@@ -1123,17 +1150,24 @@ function checkSandConnections() {
 
 
             /*
-               THIS IS THE IMPORTANT PART.
+               IMPORTANT:
 
-               A single Tetris piece can
-               NEVER clear itself.
+               The group only clears if it
+               physically connects BOTH:
 
-               We need sand from at least
-               TWO DIFFERENT PIECES.
+               LEFT WALL
+                    ↓
+               █████████████
+                    ↓
+               RIGHT WALL
+
+               Merely touching another
+               Tetris piece is NOT enough.
             */
 
             if (
-                pieceIds.size < 2
+                !touchesLeftWall ||
+                !touchesRightWall
             ) {
 
                 continue;
@@ -1142,28 +1176,11 @@ function checkSandConnections() {
 
 
             /*
-               Also require a reasonable
-               connected size.
-            */
-
-            if (
-                group.length < 100
-            ) {
-
-                continue;
-
-            }
-
-
-            /*
-               CLEAR GROUP
+               WALL-TO-WALL CONNECTION FOUND!
             */
 
             for (
-                const [
-                    gx,
-                    gy
-                ]
+                const [gx, gy]
                 of group
             ) {
 
@@ -1185,6 +1202,10 @@ function checkSandConnections() {
 
     }
 
+
+    /*
+       Nothing cleared.
+    */
 
     if (
         totalCleared === 0
@@ -1226,10 +1247,18 @@ function checkSandConnections() {
     updateUI();
 
 
+    /*
+       SOUND
+    */
+
     playSound(
         lineClearSound
     );
 
+
+    /*
+       POPUP
+    */
 
     const popup =
         document.getElementById(
@@ -1246,9 +1275,9 @@ function checkSandConnections() {
     if (popupText) {
 
         popupText.textContent =
-            groupsCleared >= 2
-                ? "COLOUR COMBO! 🌈💥"
-                : "COLOUR CONNECT! ✨";
+            groupsCleared > 1
+                ? "WALL COMBO! 🌈💥"
+                : "WALL TO WALL! 🌈💥";
 
     }
 
@@ -1274,7 +1303,6 @@ function checkSandConnections() {
     }
 
 }
-
 
 /* =====================================================
    DRAW BACKGROUND
