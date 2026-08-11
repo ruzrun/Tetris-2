@@ -925,7 +925,7 @@ body {
 
 .game-wrapper {
 
-    transform: translateY(-80px);
+    transform: translateY(-30px);
 
     position: fixed;
 
@@ -1371,7 +1371,7 @@ VERY SMALL PHONES
 @media (max-width: 380px) {
 
 .game-wrapper {
-        transform: translateY(-80px);
+        transform: translateY(-30px);
     }
 
 .game-container {
@@ -1477,7 +1477,7 @@ and (max-height: 650px) {
 
 .game-wrapper {
 
-    transform: translateY(-80px);
+    transform: translateY(-30px);
 
     padding-top:
         calc(
