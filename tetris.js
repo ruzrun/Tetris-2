@@ -1,11 +1,7 @@
 /* =====================================================
    RAA'S TETRIS 2
-   🌈 TINY COLOURFUL SAND EDITION
-===================================================== */
-
-
-/* =====================================================
-   CANVAS
+   🌈 FALLING SAND EDITION
+   Lightweight cellular sand simulation
 ===================================================== */
 
 const canvas = document.getElementById("gameCanvas");
@@ -16,255 +12,69 @@ const nextCtx = nextCanvas.getContext("2d");
 
 const COLS = 10;
 const ROWS = 20;
-
 const BLOCK = 30;
 
 
 /* =====================================================
-   TINY SAND SETTINGS
+   SAND ENGINE
 ===================================================== */
 
 const SAND_SIZE = 3;
-const SAND_GAP = 1;
 
-const PARTICLES_PER_BLOCK = 28;
+const SAND_COLS =
+    Math.floor(canvas.width / SAND_SIZE);
 
-const MAX_SAND_PARTICLES = 7000;
+const SAND_ROWS =
+    Math.floor(canvas.height / SAND_SIZE);
 
-const SAND_GRAVITY = 0.18;
-const SAND_MAX_SPEED = 2.8;
 
-const SAND_WIDTH =
-    Math.floor(canvas.width / (SAND_SIZE + SAND_GAP));
+/*
+   Each number represents a grain.
 
-const SAND_HEIGHT =
-    Math.floor(canvas.height / (SAND_SIZE + SAND_GAP));
+   0 = empty
+   1+ = colour index
+*/
+
+const sand = new Uint8Array(
+    SAND_COLS * SAND_ROWS
+);
 
 
 /* =====================================================
-   AUDIO
+   COLOURS
 ===================================================== */
 
-const bgMusic =
-    document.getElementById("bgMusic");
+const COLOURS = [
 
-const gameOverSound =
-    document.getElementById("gameOverSound");
+    "#00d9ff",
+    "#20e4ff",
+    "#63edff",
 
-const lineClearSound =
-    document.getElementById("lineClearSound");
+    "#ffe600",
+    "#fff04a",
+    "#ffd000",
 
-const soundButton =
-    document.getElementById("soundButton");
+    "#b84cff",
+    "#c866ff",
+    "#d891ff",
 
-let soundEnabled = true;
+    "#31e875",
+    "#53f28d",
+    "#7affaa",
 
-bgMusic.volume = 0.45;
-gameOverSound.volume = 0.7;
-lineClearSound.volume = 0.65;
+    "#ff477e",
+    "#ff6894",
+    "#ff8aaa",
 
-/* =====================================================
-new
-===================================================== */
+    "#4f7cff",
+    "#7097ff",
+    "#91adff",
 
-let sandSpatialGrid = new Map();
+    "#ff9d35",
+    "#ffb45e",
+    "#ffd080"
 
-function getSpatialKey(x, y) {
-
-    const gx =
-        Math.floor(x / 8);
-
-    const gy =
-        Math.floor(y / 8);
-
-    return gx + "," + gy;
-
-}
-
-
-function rebuildSandSpatialGrid() {
-
-    sandSpatialGrid.clear();
-
-
-    for (
-        const particle of sandParticles
-    ) {
-
-        const key =
-            getSpatialKey(
-                particle.x,
-                particle.y
-            );
-
-
-        let bucket =
-            sandSpatialGrid.get(key);
-
-
-        if (!bucket) {
-
-            bucket = [];
-
-            sandSpatialGrid.set(
-                key,
-                bucket
-            );
-
-        }
-
-
-        bucket.push(
-            particle
-        );
-
-    }
-
-}
-
-
-function getNearbyParticles(
-    particle
-) {
-
-    const results = [];
-
-    const gx =
-        Math.floor(
-            particle.x / 8
-        );
-
-    const gy =
-        Math.floor(
-            particle.y / 8
-        );
-
-
-    for (
-        let yy = -1;
-        yy <= 1;
-        yy++
-    ) {
-
-        for (
-            let xx = -1;
-            xx <= 1;
-            xx++
-        ) {
-
-            const bucket =
-                sandSpatialGrid.get(
-                    (
-                        gx + xx
-                    ) +
-                    "," +
-                    (
-                        gy + yy
-                    )
-                );
-
-
-            if (bucket) {
-
-                results.push(
-                    ...bucket
-                );
-
-            }
-
-        }
-
-    }
-
-
-    return results;
-
-}
-
-
-/* =====================================================
-   SOUND BUTTON
-===================================================== */
-
-function updateSoundButton() {
-
-    soundButton.textContent =
-        soundEnabled ? "🔊" : "🔇";
-
-    soundButton.setAttribute(
-        "aria-label",
-        soundEnabled
-            ? "Mute sound"
-            : "Turn sound on"
-    );
-
-}
-
-
-soundButton.addEventListener(
-    "click",
-    () => {
-
-        soundEnabled =
-            !soundEnabled;
-
-        bgMusic.muted =
-            !soundEnabled;
-
-        gameOverSound.muted =
-            !soundEnabled;
-
-        lineClearSound.muted =
-            !soundEnabled;
-
-        updateSoundButton();
-
-        if (soundEnabled) {
-
-            bgMusic
-                .play()
-                .catch(() => {});
-
-        }
-
-    }
-);
-
-updateSoundButton();
-
-
-/* =====================================================
-   START MUSIC
-===================================================== */
-
-function startMusic() {
-
-    if (!soundEnabled) {
-        return;
-    }
-
-    bgMusic
-        .play()
-        .catch(() => {});
-
-}
-
-window.addEventListener(
-    "load",
-    startMusic
-);
-
-document.addEventListener(
-    "click",
-    startMusic,
-    { once: true }
-);
-
-document.addEventListener(
-    "touchstart",
-    startMusic,
-    { once: true }
-);
+];
 
 
 /* =====================================================
@@ -275,7 +85,7 @@ const PIECES = [
 
     {
         name: "I",
-        color: "#00d9ff",
+        colourStart: 0,
 
         shape: [
             [1, 1, 1, 1]
@@ -284,7 +94,7 @@ const PIECES = [
 
     {
         name: "O",
-        color: "#ffe600",
+        colourStart: 3,
 
         shape: [
             [1, 1],
@@ -294,7 +104,7 @@ const PIECES = [
 
     {
         name: "T",
-        color: "#b84cff",
+        colourStart: 6,
 
         shape: [
             [0, 1, 0],
@@ -304,7 +114,7 @@ const PIECES = [
 
     {
         name: "S",
-        color: "#31e875",
+        colourStart: 9,
 
         shape: [
             [0, 1, 1],
@@ -314,7 +124,7 @@ const PIECES = [
 
     {
         name: "Z",
-        color: "#ff477e",
+        colourStart: 12,
 
         shape: [
             [1, 1, 0],
@@ -324,7 +134,7 @@ const PIECES = [
 
     {
         name: "J",
-        color: "#4f7cff",
+        colourStart: 15,
 
         shape: [
             [1, 0, 0],
@@ -334,7 +144,7 @@ const PIECES = [
 
     {
         name: "L",
-        color: "#ff9d35",
+        colourStart: 18,
 
         shape: [
             [0, 0, 1],
@@ -346,77 +156,10 @@ const PIECES = [
 
 
 /* =====================================================
-   COLOUR PALETTES
-===================================================== */
-
-const COLOR_PALETTES = {
-
-    "#00d9ff": [
-        "#00d9ff",
-        "#20e4ff",
-        "#63edff",
-        "#00bfe8",
-        "#8af5ff"
-    ],
-
-    "#ffe600": [
-        "#ffe600",
-        "#fff04a",
-        "#ffd000",
-        "#fff77a",
-        "#ffea29"
-    ],
-
-    "#b84cff": [
-        "#b84cff",
-        "#c866ff",
-        "#9f35ff",
-        "#d891ff",
-        "#a957ff"
-    ],
-
-    "#31e875": [
-        "#31e875",
-        "#53f28d",
-        "#18c961",
-        "#7affaa",
-        "#28dc70"
-    ],
-
-    "#ff477e": [
-        "#ff477e",
-        "#ff6894",
-        "#ff2f69",
-        "#ff8aaa",
-        "#e83268"
-    ],
-
-    "#4f7cff": [
-        "#4f7cff",
-        "#7097ff",
-        "#3566e8",
-        "#91adff",
-        "#5278e8"
-    ],
-
-    "#ff9d35": [
-        "#ff9d35",
-        "#ffb45e",
-        "#ff8618",
-        "#ffd080",
-        "#ff9b2f"
-    ]
-
-};
-
-
-/* =====================================================
    GAME STATE
 ===================================================== */
 
 let board = [];
-
-let sandParticles = [];
 
 let currentPiece = null;
 let nextPiece = null;
@@ -433,21 +176,72 @@ let dropInterval = 800;
 let gameRunning = false;
 let paused = false;
 
-let sandAccumulator = 0;
 
-let animationID = null;
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function sandIndex(x, y) {
+
+    return y * SAND_COLS + x;
+
+}
+
+
+function getSand(x, y) {
+
+    if (
+        x < 0 ||
+        x >= SAND_COLS ||
+        y < 0 ||
+        y >= SAND_ROWS
+    ) {
+
+        return 0;
+
+    }
+
+    return sand[
+        sandIndex(x, y)
+    ];
+
+}
+
+
+function setSand(x, y, value) {
+
+    if (
+        x < 0 ||
+        x >= SAND_COLS ||
+        y < 0 ||
+        y >= SAND_ROWS
+    ) {
+
+        return;
+
+    }
+
+    sand[
+        sandIndex(x, y)
+    ] = value;
+
+}
+
+
+function isSand(x, y) {
+
+    return getSand(x, y) !== 0;
+
+}
 
 
 /* =====================================================
-   CREATE TETRIS BOARD
+   CLEAR SAND
 ===================================================== */
 
-function createBoard() {
+function clearSand() {
 
-    return Array.from(
-        { length: ROWS },
-        () => Array(COLS).fill(null)
-    );
+    sand.fill(0);
 
 }
 
@@ -461,19 +255,23 @@ function randomPiece() {
     const template =
         PIECES[
             Math.floor(
-                Math.random() * PIECES.length
+                Math.random() *
+                PIECES.length
             )
         ];
+
 
     return {
 
         name: template.name,
 
-        color: template.color,
+        colourStart:
+            template.colourStart,
 
-        shape: template.shape.map(
-            row => [...row]
-        ),
+        shape:
+            template.shape.map(
+                row => [...row]
+            ),
 
         x: 0,
         y: 0
@@ -484,18 +282,36 @@ function randomPiece() {
 
 
 /* =====================================================
-   SPAWN PIECE
+   CREATE BOARD
+===================================================== */
+
+function createBoard() {
+
+    return Array.from(
+        { length: ROWS },
+        () => Array(COLS).fill(null)
+    );
+
+}
+
+
+/* =====================================================
+   SPAWN
 ===================================================== */
 
 function spawnPiece() {
 
     currentPiece =
-        nextPiece || randomPiece();
+        nextPiece ||
+        randomPiece();
+
 
     nextPiece =
         randomPiece();
 
+
     currentPiece.y = 0;
+
 
     currentPiece.x =
         Math.floor(
@@ -505,7 +321,9 @@ function spawnPiece() {
             ) / 2
         );
 
+
     drawNext();
+
 
     if (collision()) {
 
@@ -537,20 +355,23 @@ function collision() {
             if (
                 !currentPiece.shape[y][x]
             ) {
+
                 continue;
+
             }
 
-            const boardX =
+
+            const bx =
                 currentPiece.x + x;
 
-            const boardY =
+            const by =
                 currentPiece.y + y;
 
 
             if (
-                boardX < 0 ||
-                boardX >= COLS ||
-                boardY >= ROWS
+                bx < 0 ||
+                bx >= COLS ||
+                by >= ROWS
             ) {
 
                 return true;
@@ -558,9 +379,17 @@ function collision() {
             }
 
 
+            /*
+               The sand pile is converted
+               into a rough Tetris collision map.
+            */
+
             if (
-                boardY >= 0 &&
-                board[boardY][boardX]
+                by >= 0 &&
+                sandCellOccupied(
+                    bx,
+                    by
+                )
             ) {
 
                 return true;
@@ -570,6 +399,7 @@ function collision() {
         }
 
     }
+
 
     return false;
 
@@ -577,750 +407,710 @@ function collision() {
 
 
 /* =====================================================
-   GET RANDOM COLOUR
+   CHECK WHETHER A TETRIS CELL CONTAINS SAND
 ===================================================== */
 
-function getParticleColour(baseColour) {
+function sandCellOccupied(
+    boardX,
+    boardY
+) {
 
-    const palette =
-        COLOR_PALETTES[baseColour];
+    const startX =
+        boardX *
+        (BLOCK / SAND_SIZE);
 
-    if (!palette) {
-        return baseColour;
+    const startY =
+        boardY *
+        (BLOCK / SAND_SIZE);
+
+
+    const endX =
+        startX +
+        (BLOCK / SAND_SIZE);
+
+    const endY =
+        startY +
+        (BLOCK / SAND_SIZE);
+
+
+    for (
+        let y = startY;
+        y < endY;
+        y++
+    ) {
+
+        for (
+            let x = startX;
+            x < endX;
+            x++
+        ) {
+
+            if (
+                getSand(x, y)
+            ) {
+
+                return true;
+
+            }
+
+        }
+
     }
 
-    return palette[
-        Math.floor(
-            Math.random() *
-            palette.length
-        )
-    ];
+
+    return false;
 
 }
 
 
 /* =====================================================
-   CREATE TINY SAND PARTICLES
+   CONVERT LANDED TETRIS PIECE INTO SAND
 ===================================================== */
 
-function createSandFromPiece() {
+function turnPieceIntoSand() {
 
-    currentPiece.shape.forEach(
-        (row, localY) => {
-
-            row.forEach(
-                (value, localX) => {
-
-                    if (!value) {
-                        return;
-                    }
+    const grainsPerBlock =
+        BLOCK / SAND_SIZE;
 
 
-                    const cellX =
-                        (
-                            currentPiece.x +
-                            localX
-                        ) * BLOCK;
+    for (
+        let py = 0;
+        py < currentPiece.shape.length;
+        py++
+    ) {
 
-                    const cellY =
-                        (
-                            currentPiece.y +
-                            localY
-                        ) * BLOCK;
+        for (
+            let px = 0;
+            px < currentPiece.shape[py].length;
+            px++
+        ) {
+
+            if (
+                !currentPiece.shape[py][px]
+            ) {
+
+                continue;
+
+            }
+
+
+            const startX =
+                (
+                    currentPiece.x +
+                    px
+                ) *
+                grainsPerBlock;
+
+
+            const startY =
+                (
+                    currentPiece.y +
+                    py
+                ) *
+                grainsPerBlock;
+
+
+            /*
+               Fill the Tetris cell with
+               tiny colourful grains.
+            */
+
+            for (
+                let sy = 0;
+                sy < grainsPerBlock;
+                sy++
+            ) {
+
+                for (
+                    let sx = 0;
+                    sx < grainsPerBlock;
+                    sx++
+                ) {
+
+                    const gx =
+                        startX + sx;
+
+                    const gy =
+                        startY + sy;
 
 
                     /*
-                       Create many tiny particles
-                       inside this one Tetris cell.
+                       Slight randomness makes
+                       the grain colour varied.
                     */
 
-                    for (
-                        let i = 0;
-                        i < PARTICLES_PER_BLOCK;
-                        i++
-                    ) {
-
-                        const particle = {
-
-                            x:
-                                cellX +
-                                Math.random() *
-                                (BLOCK - SAND_SIZE),
-
-                            y:
-                                cellY +
-                                Math.random() *
-                                (BLOCK - SAND_SIZE),
-
-                            vx:
-                                (Math.random() - 0.5) *
-                                0.5,
-
-                            vy:
-                                Math.random() *
-                                0.5,
-
-                            color:
-                                getParticleColour(
-                                    currentPiece.color
-                                ),
-
-                            size:
-                                SAND_SIZE +
-                                (
-                                    Math.random() > 0.8
-                                        ? 1
-                                        : 0
-                                ),
-
-                            settled: false,
-
-                            life:
-                                Math.random()
-
-                        };
-
-
-                        sandParticles.push(
-                            particle
+                    const colour =
+                        currentPiece.colourStart +
+                        Math.floor(
+                            Math.random() * 3
                         );
 
-                    }
+
+                    setSand(
+                        gx,
+                        gy,
+                        colour + 1
+                    );
 
                 }
-            );
+
+            }
 
         }
-    );
+
+    }
 
 }
 
 
 /* =====================================================
-   REMOVE OLD TETRIS CELL
+   SAND PHYSICS
 ===================================================== */
 
-function clearPieceFromBoard() {
+function updateSand() {
 
     /*
-       The normal board is only used
-       for collision while the piece
-       is falling.
+       Process from bottom upwards.
 
-       Once it lands, the piece becomes
-       particles instead.
+       This is extremely cheap because
+       each location is just a Uint8 value.
+    */
+
+    for (
+        let y = SAND_ROWS - 2;
+        y >= 0;
+        y--
+    ) {
+
+        /*
+           Randomise direction slightly.
+
+           This makes the pile look less
+           perfectly symmetrical.
+        */
+
+        const leftFirst =
+            Math.random() > 0.5;
+
+
+        for (
+            let x = 1;
+            x < SAND_COLS - 1;
+            x++
+        ) {
+
+            const current =
+                getSand(x, y);
+
+
+            if (!current) {
+
+                continue;
+
+            }
+
+
+            /*
+               Straight down
+            */
+
+            if (
+                !isSand(x, y + 1)
+            ) {
+
+                setSand(
+                    x,
+                    y,
+                    0
+                );
+
+                setSand(
+                    x,
+                    y + 1,
+                    current
+                );
+
+                continue;
+
+            }
+
+
+            /*
+               Down-left
+            */
+
+            if (leftFirst) {
+
+                if (
+                    !isSand(
+                        x - 1,
+                        y + 1
+                    )
+                ) {
+
+                    setSand(
+                        x,
+                        y,
+                        0
+                    );
+
+                    setSand(
+                        x - 1,
+                        y + 1,
+                        current
+                    );
+
+                    continue;
+
+                }
+
+
+                /*
+                   Down-right
+                */
+
+                if (
+                    !isSand(
+                        x + 1,
+                        y + 1
+                    )
+                ) {
+
+                    setSand(
+                        x,
+                        y,
+                        0
+                    );
+
+                    setSand(
+                        x + 1,
+                        y + 1,
+                        current
+                    );
+
+                    continue;
+
+                }
+
+            }
+
+            else {
+
+                /*
+                   Down-right first
+                */
+
+                if (
+                    !isSand(
+                        x + 1,
+                        y + 1
+                    )
+                ) {
+
+                    setSand(
+                        x,
+                        y,
+                        0
+                    );
+
+                    setSand(
+                        x + 1,
+                        y + 1,
+                        current
+                    );
+
+                    continue;
+
+                }
+
+
+                /*
+                   Down-left
+                */
+
+                if (
+                    !isSand(
+                        x - 1,
+                        y + 1
+                    )
+                ) {
+
+                    setSand(
+                        x,
+                        y,
+                        0
+                    );
+
+                    setSand(
+                        x - 1,
+                        y + 1,
+                        current
+                    );
+
+                    continue;
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   RUN MULTIPLE SAND STEPS
+===================================================== */
+
+function simulateSand() {
+
+    /*
+       Three tiny simulation steps per
+       game frame gives smooth falling.
+    */
+
+    updateSand();
+    updateSand();
+    updateSand();
+
+}
+
+
+/* =====================================================
+   DRAW BACKGROUND
+===================================================== */
+
+function drawBackground() {
+
+    ctx.fillStyle =
+        "#111827";
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /*
+       Very subtle grid
+    */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.025)";
+
+
+    for (
+        let x = 0;
+        x <= COLS;
+        x++
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x * BLOCK,
+            0
+        );
+
+        ctx.lineTo(
+            x * BLOCK,
+            canvas.height
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    for (
+        let y = 0;
+        y <= ROWS;
+        y++
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            y * BLOCK
+        );
+
+        ctx.lineTo(
+            canvas.width,
+            y * BLOCK
+        );
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW SAND
+===================================================== */
+
+function drawSand() {
+
+    /*
+       Each sand cell is just a tiny
+       coloured square.
     */
 
     for (
         let y = 0;
-        y < currentPiece.shape.length;
+        y < SAND_ROWS;
         y++
     ) {
 
         for (
             let x = 0;
-            x < currentPiece.shape[y].length;
+            x < SAND_COLS;
             x++
         ) {
 
-            if (
-                !currentPiece.shape[y][x]
-            ) {
-                continue;
-            }
-
-            const boardX =
-                currentPiece.x + x;
-
-            const boardY =
-                currentPiece.y + y;
+            const value =
+                sand[
+                    sandIndex(x, y)
+                ];
 
 
-            if (
-                boardY >= 0 &&
-                boardY < ROWS &&
-                boardX >= 0 &&
-                boardX < COLS
-            ) {
-
-                board[boardY][boardX] =
-                    null;
-
-            }
-
-        }
-
-    }
-
-}
-
-
-/* =====================================================
-   PARTICLE COLLISION
-===================================================== */
-
-function particleBlocked(
-    particle,
-    newX,
-    newY
-) {
-
-    /*
-       Floor
-    */
-
-    if (
-        newY +
-        particle.size >=
-        canvas.height
-    ) {
-
-        return true;
-
-    }
-
-
-    /*
-       Walls
-    */
-
-    if (
-        newX < 0 ||
-        newX +
-        particle.size >
-        canvas.width
-    ) {
-
-        return true;
-
-    }
-
-
-    /*
-       Only check nearby particles.
-
-       This is MUCH faster than checking
-       every particle in the entire game.
-    */
-
-    const nearby =
-        getNearbyParticles(
-            particle
-        );
-
-
-    for (
-        const other of nearby
-    ) {
-
-        if (
-            other === particle
-        ) {
-
-            continue;
-
-        }
-
-
-        const dx =
-            (
-                other.x +
-                other.size / 2
-            ) -
-            (
-                newX +
-                particle.size / 2
-            );
-
-
-        const dy =
-            (
-                other.y +
-                other.size / 2
-            ) -
-            (
-                newY +
-                particle.size / 2
-            );
-
-
-        const distance =
-            Math.sqrt(
-                dx * dx +
-                dy * dy
-            );
-
-
-        const minimumDistance =
-            (
-                other.size +
-                particle.size
-            ) * 0.48;
-
-
-        if (
-            distance <
-            minimumDistance
-        ) {
-
-            return true;
-
-        }
-
-    }
-
-
-    return false;
-
-}
-
-/* =====================================================
-   UPDATE SAND PARTICLES
-===================================================== */
-
-function updateSand(deltaTime) {
-
-    const dt =
-        Math.min(
-            deltaTime / 16.67,
-            1.5
-        );
-
-
-    /*
-       Rebuild the spatial grid once
-       before moving particles.
-    */
-
-    rebuildSandSpatialGrid();
-
-
-    /*
-       Bottom particles first.
-    */
-
-    sandParticles.sort(
-        (a, b) =>
-            b.y - a.y
-    );
-
-
-    for (
-        const particle of sandParticles
-    ) {
-
-        if (
-            particle.settled
-        ) {
-
-            /*
-               Occasionally wake particles
-               so piles can still shift.
-            */
-
-            if (
-                Math.random() < 0.006
-            ) {
-
-                particle.settled =
-                    false;
-
-            }
-            else {
+            if (!value) {
 
                 continue;
 
             }
 
-        }
+
+            ctx.fillStyle =
+                COLOURS[value - 1];
 
 
-        /*
-           Gravity
-        */
-
-        particle.vy +=
-            SAND_GRAVITY * dt;
-
-
-        particle.vy =
-            Math.min(
-                particle.vy,
-                SAND_MAX_SPEED
+            ctx.fillRect(
+                x * SAND_SIZE,
+                y * SAND_SIZE,
+                SAND_SIZE,
+                SAND_SIZE
             );
 
-
-        let moved = false;
-
-
-        /*
-           Move down
-        */
-
-        const downY =
-            particle.y +
-            particle.vy * dt;
-
-
-        if (
-            !particleBlocked(
-                particle,
-                particle.x,
-                downY
-            )
-        ) {
-
-            particle.y =
-                downY;
-
-            moved = true;
-
         }
-
-
-        /*
-           If blocked, slide diagonally.
-        */
-
-        if (!moved) {
-
-            const directions =
-                Math.random() > 0.5
-                    ? [-1, 1]
-                    : [1, -1];
-
-
-            for (
-                const direction
-                of directions
-            ) {
-
-                const slideX =
-                    particle.x +
-                    direction *
-                    2.2;
-
-
-                const slideY =
-                    particle.y +
-                    1.5;
-
-
-                if (
-                    !particleBlocked(
-                        particle,
-                        slideX,
-                        slideY
-                    )
-                ) {
-
-                    particle.x =
-                        slideX;
-
-                    particle.y =
-                        slideY;
-
-                    particle.vy =
-                        0.5;
-
-                    moved = true;
-
-                    break;
-
-                }
-
-            }
-
-        }
-
-
-        /*
-           Nothing underneath?
-
-           Let the grain settle.
-        */
-
-        if (!moved) {
-
-            particle.vy = 0;
-
-            particle.vx = 0;
-
-            particle.settled = true;
-
-        }
-
-
-        /*
-           Keep inside board.
-        */
-
-        if (
-            particle.x < 0
-        ) {
-
-            particle.x = 0;
-
-        }
-
-
-        if (
-            particle.x +
-            particle.size >
-            canvas.width
-        ) {
-
-            particle.x =
-                canvas.width -
-                particle.size;
-
-        }
-
-    }
-
-
-    /*
-       Safety limit.
-
-       If something somehow creates too
-       many particles, remove the oldest
-       ones rather than freezing the browser.
-    */
-
-    if (
-        sandParticles.length >
-        MAX_SAND_PARTICLES
-    ) {
-
-        sandParticles =
-            sandParticles.slice(
-                sandParticles.length -
-                MAX_SAND_PARTICLES
-            );
 
     }
 
 }
 
-/* =====================================================
-   SNAP PARTICLES TO ROWS FOR LINE CLEAR
-===================================================== */
-
-function buildSandRows() {
-
-    const rowCounts =
-        Array(
-            ROWS
-        ).fill(0);
-
-
-    /*
-       Each particle contributes to
-       the tiny sand grid.
-    */
-
-    for (
-        const particle of sandParticles
-    ) {
-
-        const row =
-            Math.floor(
-                particle.y /
-                BLOCK
-            );
-
-
-        if (
-            row >= 0 &&
-            row < ROWS
-        ) {
-
-            rowCounts[row]++;
-
-        }
-
-    }
-
-
-    return rowCounts;
-
-}
-
 
 /* =====================================================
-   SAND LINE CLEAR
+   DRAW CURRENT PIECE
 ===================================================== */
 
-function clearSandLines() {
+function drawCurrentPiece() {
 
-    /*
-       Instead of requiring exactly
-       10 giant blocks, use a dense
-       particle threshold.
-    */
-
-    const rowCounts =
-        buildSandRows();
-
-
-    const particleTarget =
-        Math.floor(
-            (
-                canvas.width /
-                (SAND_SIZE + SAND_GAP)
-            ) * 0.78
-        );
-
-
-    let cleared = 0;
-
-
-    for (
-        let row = ROWS - 1;
-        row >= 0;
-        row--
-    ) {
-
-        if (
-            rowCounts[row] <
-            particleTarget
-        ) {
-
-            continue;
-
-        }
-
-
-        const top =
-            row * BLOCK;
-
-
-        const bottom =
-            (row + 1) * BLOCK;
-
-
-        /*
-           Remove particles inside
-           the completed row.
-        */
-
-        sandParticles =
-            sandParticles.filter(
-                particle => {
-
-                    const particleCentre =
-                        particle.y +
-                        particle.size / 2;
-
-                    return !(
-                        particleCentre >= top &&
-                        particleCentre < bottom
-                    );
-
-                }
-            );
-
-
-        /*
-           Push everything above
-           the deleted row downward.
-        */
-
-        for (
-            const particle of sandParticles
-        ) {
-
-            if (
-                particle.y <
-                top
-            ) {
-
-                particle.y +=
-                    BLOCK;
-
-            }
-
-        }
-
-
-        cleared++;
-
-        row++;
-
-    }
-
-
-    if (
-        cleared === 0
-    ) {
+    if (!currentPiece) {
 
         return;
 
     }
 
 
-    const points = [
-        0,
-        100,
-        300,
-        500,
-        800
-    ];
+    currentPiece.shape.forEach(
+        (row, y) => {
+
+            row.forEach(
+                (value, x) => {
+
+                    if (!value) {
+
+                        return;
+
+                    }
 
 
-    score +=
-        points[
-            Math.min(
-                cleared,
-                4
-            )
-        ] * level;
+                    const px =
+                        (
+                            currentPiece.x +
+                            x
+                        ) * BLOCK;
 
 
-    lines +=
-        cleared;
+                    const py =
+                        (
+                            currentPiece.y +
+                            y
+                        ) * BLOCK;
 
 
-    level =
-        Math.floor(
-            lines / 10
-        ) + 1;
+                    const colour =
+                        COLOURS[
+                            currentPiece.colourStart
+                        ];
 
 
-    dropInterval =
-        Math.max(
-            100,
-            800 -
-            (
-                level - 1
-            ) * 65
-        );
+                    ctx.fillStyle =
+                        colour;
 
 
-    updateUI();
+                    ctx.fillRect(
+                        px + 1,
+                        py + 1,
+                        BLOCK - 2,
+                        BLOCK - 2
+                    );
 
 
-    if (soundEnabled) {
+                    /*
+                       Highlight
+                    */
 
-        lineClearSound.currentTime =
-            0;
-
-        lineClearSound
-            .play()
-            .catch(() => {});
-
-    }
+                    ctx.fillStyle =
+                        "rgba(255,255,255,0.3)";
 
 
-    showLinePopup(
-        cleared
+                    ctx.fillRect(
+                        px + 3,
+                        py + 3,
+                        BLOCK - 6,
+                        4
+                    );
+
+                }
+            );
+
+        }
     );
 
 }
 
 
 /* =====================================================
-   MOVE PIECE
+   DRAW EVERYTHING
+===================================================== */
+
+function draw() {
+
+    drawBackground();
+
+    drawSand();
+
+    drawCurrentPiece();
+
+}
+
+
+/* =====================================================
+   NEXT PIECE
+===================================================== */
+
+function drawNext() {
+
+    nextCtx.clearRect(
+        0,
+        0,
+        120,
+        120
+    );
+
+
+    nextCtx.fillStyle =
+        "#f8f8f8";
+
+
+    nextCtx.fillRect(
+        0,
+        0,
+        120,
+        120
+    );
+
+
+    if (!nextPiece) {
+
+        return;
+
+    }
+
+
+    const shape =
+        nextPiece.shape;
+
+
+    const size = 25;
+
+
+    const width =
+        shape[0].length *
+        size;
+
+
+    const height =
+        shape.length *
+        size;
+
+
+    const startX =
+        (
+            120 - width
+        ) / 2;
+
+
+    const startY =
+        (
+            120 - height
+        ) / 2;
+
+
+    shape.forEach(
+        (row, y) => {
+
+            row.forEach(
+                (value, x) => {
+
+                    if (!value) {
+
+                        return;
+
+                    }
+
+
+                    const px =
+                        startX +
+                        x * size;
+
+
+                    const py =
+                        startY +
+                        y * size;
+
+
+                    nextCtx.fillStyle =
+                        COLOURS[
+                            nextPiece.colourStart
+                        ];
+
+
+                    nextCtx.fillRect(
+                        px + 1,
+                        py + 1,
+                        size - 2,
+                        size - 2
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   MOVE
 ===================================================== */
 
 function move(direction) {
@@ -1409,47 +1199,7 @@ function hardDrop() {
 
     currentPiece.y--;
 
-
     lockPiece();
-
-}
-
-
-/* =====================================================
-   LOCK PIECE
-===================================================== */
-
-function lockPiece() {
-
-    /*
-       IMPORTANT:
-
-       No solid Tetris block is stored.
-
-       The piece immediately becomes
-       dozens of tiny colourful particles.
-    */
-
-    createSandFromPiece();
-
-
-    clearPieceFromBoard();
-
-
-    /*
-       Start physics immediately.
-    */
-
-    updateSand(16);
-
-
-    clearSandLines();
-
-
-    spawnPiece();
-
-
-    dropCounter = 0;
 
 }
 
@@ -1490,10 +1240,6 @@ function rotatePiece() {
         rotated;
 
 
-    /*
-       Wall kick
-    */
-
     if (collision()) {
 
         currentPiece.x++;
@@ -1521,321 +1267,207 @@ function rotatePiece() {
 
 
 /* =====================================================
-   DRAW BACKGROUND
+   LOCK
 ===================================================== */
 
-function drawBackground() {
+function lockPiece() {
 
-    ctx.fillStyle =
-        "#111827";
+    turnPieceIntoSand();
 
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+    spawnPiece();
 
-
-    /*
-       Very subtle grid.
-    */
-
-    ctx.strokeStyle =
-        "rgba(255,255,255,0.025)";
-
-
-    for (
-        let x = 0;
-        x <= COLS;
-        x++
-    ) {
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            x * BLOCK,
-            0
-        );
-
-        ctx.lineTo(
-            x * BLOCK,
-            canvas.height
-        );
-
-        ctx.stroke();
-
-    }
-
-
-    for (
-        let y = 0;
-        y <= ROWS;
-        y++
-    ) {
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            0,
-            y * BLOCK
-        );
-
-        ctx.lineTo(
-            canvas.width,
-            y * BLOCK
-        );
-
-        ctx.stroke();
-
-    }
+    dropCounter = 0;
 
 }
 
 
 /* =====================================================
-   DRAW SAND
+   SIMPLE SAND LINE CLEAR
 ===================================================== */
 
-function drawSand() {
+function checkSandLines() {
 
     /*
-       Draw slightly larger particles first.
+       A row is considered full when
+       around 92% of its tiny cells
+       contain sand.
     */
 
-    for (
-        const particle of sandParticles
-    ) {
-
-        ctx.fillStyle =
-            particle.color;
-
-
-        ctx.fillRect(
-            Math.round(
-                particle.x
-            ),
-            Math.round(
-                particle.y
-            ),
-            particle.size,
-            particle.size
+    const required =
+        Math.floor(
+            SAND_COLS * 0.92
         );
 
-    }
 
-}
-
-
-/* =====================================================
-   DRAW CURRENT TETRIS PIECE
-===================================================== */
-
-function drawCurrentPiece() {
-
-    if (!currentPiece) {
-        return;
-    }
+    let cleared = 0;
 
 
-    currentPiece.shape.forEach(
-        (row, y) => {
+    for (
+        let y = SAND_ROWS - 1;
+        y >= 0;
+        y--
+    ) {
 
-            row.forEach(
-                (value, x) => {
-
-                    if (!value) {
-                        return;
-                    }
+        let count = 0;
 
 
-                    const px =
-                        (
-                            currentPiece.x +
-                            x
-                        ) * BLOCK;
+        for (
+            let x = 0;
+            x < SAND_COLS;
+            x++
+        ) {
 
-                    const py =
-                        (
-                            currentPiece.y +
-                            y
-                        ) * BLOCK;
+            if (
+                getSand(x, y)
+            ) {
 
+                count++;
 
-                    /*
-                       Main piece
-                    */
+            }
 
-                    ctx.fillStyle =
-                        currentPiece.color;
+        }
 
 
-                    ctx.fillRect(
-                        px + 1,
-                        py + 1,
-                        BLOCK - 2,
-                        BLOCK - 2
-                    );
+        if (
+            count < required
+        ) {
+
+            continue;
+
+        }
 
 
-                    /*
-                       Highlight
-                    */
+        /*
+           Remove this row.
+        */
 
-                    ctx.fillStyle =
-                        "rgba(255,255,255,0.3)";
+        for (
+            let yy = y;
+            yy > 0;
+            yy--
+        ) {
+
+            for (
+                let x = 0;
+                x < SAND_COLS;
+                x++
+            ) {
+
+                setSand(
+                    x,
+                    yy,
+                    getSand(
+                        x,
+                        yy - 1
+                    )
+                );
+
+            }
+
+        }
 
 
-                    ctx.fillRect(
-                        px + 3,
-                        py + 3,
-                        BLOCK - 6,
-                        4
-                    );
+        /*
+           Empty top row.
+        */
 
+        for (
+            let x = 0;
+            x < SAND_COLS;
+            x++
+        ) {
 
-                    /*
-                       Border
-                    */
-
-                    ctx.strokeStyle =
-                        "rgba(0,0,0,0.2)";
-
-
-                    ctx.strokeRect(
-                        px,
-                        py,
-                        BLOCK,
-                        BLOCK
-                    );
-
-                }
+            setSand(
+                x,
+                0,
+                0
             );
 
         }
-    );
-
-}
 
 
-/* =====================================================
-   DRAW
-===================================================== */
+        cleared++;
 
-function draw() {
+        y++;
 
-    drawBackground();
-
-    drawSand();
-
-    drawCurrentPiece();
-
-}
-
-
-/* =====================================================
-   DRAW NEXT PIECE
-===================================================== */
-
-function drawNext() {
-
-    nextCtx.clearRect(
-        0,
-        0,
-        120,
-        120
-    );
-
-
-    nextCtx.fillStyle =
-        "#f8f8f8";
-
-
-    nextCtx.fillRect(
-        0,
-        0,
-        120,
-        120
-    );
-
-
-    if (!nextPiece) {
-        return;
     }
 
 
-    const shape =
-        nextPiece.shape;
+    if (!cleared) {
 
-    const size = 25;
+        return;
 
-    const width =
-        shape[0].length * size;
-
-    const height =
-        shape.length * size;
-
-    const startX =
-        (120 - width) / 2;
-
-    const startY =
-        (120 - height) / 2;
+    }
 
 
-    shape.forEach(
-        (row, y) => {
-
-            row.forEach(
-                (value, x) => {
-
-                    if (!value) {
-                        return;
-                    }
+    score +=
+        cleared *
+        100 *
+        level;
 
 
-                    const px =
-                        startX +
-                        x * size;
-
-                    const py =
-                        startY +
-                        y * size;
+    lines +=
+        cleared;
 
 
-                    nextCtx.fillStyle =
-                        nextPiece.color;
+    level =
+        Math.floor(
+            lines / 10
+        ) + 1;
 
 
-                    nextCtx.fillRect(
-                        px + 1,
-                        py + 1,
-                        size - 2,
-                        size - 2
-                    );
+    dropInterval =
+        Math.max(
+            100,
+            800 -
+            (
+                level - 1
+            ) * 60
+        );
 
 
-                    nextCtx.fillStyle =
-                        "rgba(255,255,255,0.3)";
+    updateUI();
 
 
-                    nextCtx.fillRect(
-                        px + 3,
-                        py + 3,
-                        size - 6,
-                        3
-                    );
+    const popup =
+        document.getElementById(
+            "linePopup"
+        );
 
-                }
+
+    const popupText =
+        document.getElementById(
+            "linePopupText"
+        );
+
+
+    popupText.textContent =
+        cleared >= 4
+            ? "SAND BLAST! 🌈"
+            : "NICE! ✨";
+
+
+    popup.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+        () => {
+
+            popup.classList.remove(
+                "show"
             );
 
-        }
+        },
+        900
     );
 
 }
 
 
 /* =====================================================
-   UPDATE UI
+   UI
 ===================================================== */
 
 function updateUI() {
@@ -1861,100 +1493,19 @@ function updateUI() {
 
 
 /* =====================================================
-   LINE POPUP
-===================================================== */
-
-function showLinePopup(
-    cleared
-) {
-
-    const popup =
-        document.getElementById(
-            "linePopup"
-        );
-
-    const text =
-        document.getElementById(
-            "linePopupText"
-        );
-
-
-    if (
-        cleared === 1
-    ) {
-
-        text.textContent =
-            "NICE! ✨";
-
-    }
-
-    else if (
-        cleared === 2
-    ) {
-
-        text.textContent =
-            "GREAT! 💖";
-
-    }
-
-    else if (
-        cleared === 3
-    ) {
-
-        text.textContent =
-            "AMAZING! 🌟";
-
-    }
-
-    else {
-
-        text.textContent =
-            "SAND TETRIS! 🌈";
-
-    }
-
-
-    popup.classList.remove(
-        "show"
-    );
-
-
-    void popup.offsetWidth;
-
-
-    popup.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            popup.classList.remove(
-                "show"
-            );
-
-        },
-        1000
-    );
-
-}
-
-
-/* =====================================================
    GAME LOOP
 ===================================================== */
 
-function update(
-    time = 0
-) {
+function update(time = 0) {
 
     if (!gameRunning) {
+
         return;
+
     }
 
 
-    const deltaTime =
+    const delta =
         time - lastTime;
 
 
@@ -1964,12 +1515,8 @@ function update(
 
     if (!paused) {
 
-        /*
-           Tetris piece gravity
-        */
-
         dropCounter +=
-            deltaTime;
+            delta;
 
 
         if (
@@ -1983,26 +1530,22 @@ function update(
 
 
         /*
-           Sand physics
+           Sand simulation
         */
 
-        sandAccumulator +=
-            deltaTime;
+        simulateSand();
 
+
+        /*
+           Check rows occasionally,
+           NOT every single frame.
+        */
 
         if (
-            sandAccumulator >= 16
+            Math.random() < 0.08
         ) {
 
-            updateSand(
-                sandAccumulator
-            );
-
-
-            clearSandLines();
-
-
-            sandAccumulator = 0;
+            checkSandLines();
 
         }
 
@@ -2012,26 +1555,28 @@ function update(
     }
 
 
-    animationID =
-        requestAnimationFrame(
-            update
-        );
+    requestAnimationFrame(
+        update
+    );
 
 }
 
 
 /* =====================================================
-   START GAME
+   START
 ===================================================== */
 
 function startGame() {
+
+    clearSand();
+
 
     board =
         createBoard();
 
 
-    sandParticles =
-        [];
+    currentPiece = null;
+    nextPiece = null;
 
 
     score = 0;
@@ -2039,15 +1584,9 @@ function startGame() {
     level = 1;
 
 
-    dropInterval =
-        800;
-
+    dropInterval = 800;
 
     dropCounter = 0;
-    sandAccumulator = 0;
-
-
-    nextPiece = null;
 
 
     gameRunning = true;
@@ -2057,31 +1596,19 @@ function startGame() {
     updateUI();
 
 
-    document.getElementById(
-        "pauseButton"
-    ).textContent =
-        "⏸ Pause";
-
-
     hideOverlay();
 
 
     spawnPiece();
 
 
-    cancelAnimationFrame(
-        animationID
-    );
-
-
     lastTime =
         performance.now();
 
 
-    animationID =
-        requestAnimationFrame(
-            update
-        );
+    requestAnimationFrame(
+        update
+    );
 
 
     startMusic();
@@ -2096,14 +1623,25 @@ function startGame() {
 function pauseGame() {
 
     if (!gameRunning) {
+
         return;
+
     }
 
 
-    if (!paused) {
+    paused =
+        !paused;
 
-        paused = true;
 
+    document.getElementById(
+        "pauseButton"
+    ).textContent =
+        paused
+            ? "▶ Resume"
+            : "⏸ Pause";
+
+
+    if (paused) {
 
         showOverlay(
             "Paused",
@@ -2115,33 +1653,9 @@ function pauseGame() {
 
     else {
 
-        resumeGame();
+        hideOverlay();
 
     }
-
-}
-
-
-/* =====================================================
-   RESUME
-===================================================== */
-
-function resumeGame() {
-
-    paused = false;
-
-
-    hideOverlay();
-
-
-    document.getElementById(
-        "pauseButton"
-    ).textContent =
-        "⏸ Pause";
-
-
-    lastTime =
-        performance.now();
 
 }
 
@@ -2152,26 +1666,7 @@ function resumeGame() {
 
 function restartGame() {
 
-    if (!gameRunning) {
-
-        startGame();
-
-        return;
-
-    }
-
-
-    showOverlay(
-        "Restart?",
-        "Your current game will be lost.",
-        "Yes, Restart"
-    );
-
-
-    document.getElementById(
-        "overlayCancel"
-    ).style.display =
-        "block";
+    startGame();
 
 }
 
@@ -2185,17 +1680,12 @@ function gameOver() {
     gameRunning = false;
 
 
-    bgMusic.pause();
+    if (
+        typeof bgMusic !==
+        "undefined"
+    ) {
 
-
-    if (soundEnabled) {
-
-        gameOverSound.currentTime =
-            0;
-
-        gameOverSound
-            .play()
-            .catch(() => {});
+        bgMusic.pause();
 
     }
 
@@ -2210,7 +1700,7 @@ function gameOver() {
 
 
 /* =====================================================
-   SHOW OVERLAY
+   OVERLAY
 ===================================================== */
 
 function showOverlay(
@@ -2246,10 +1736,6 @@ function showOverlay(
 }
 
 
-/* =====================================================
-   HIDE OVERLAY
-===================================================== */
-
 function hideOverlay() {
 
     document.getElementById(
@@ -2258,17 +1744,11 @@ function hideOverlay() {
         "hidden"
     );
 
-
-    document.getElementById(
-        "overlayCancel"
-    ).style.display =
-        "none";
-
 }
 
 
 /* =====================================================
-   OVERLAY MAIN BUTTON
+   BUTTONS
 ===================================================== */
 
 document.getElementById(
@@ -2284,52 +1764,22 @@ document.getElementById(
 
 
         if (
-            title === "Restart?"
-        ) {
-
-            startGame();
-
-            return;
-
-        }
-
-
-        if (
             title === "Paused"
         ) {
 
-            resumeGame();
-
-            return;
+            pauseGame();
 
         }
 
+        else {
 
-        startGame();
+            startGame();
 
-    }
-);
-
-
-/* =====================================================
-   OVERLAY CANCEL
-===================================================== */
-
-document.getElementById(
-    "overlayCancel"
-).addEventListener(
-    "click",
-    () => {
-
-        hideOverlay();
+        }
 
     }
 );
 
-
-/* =====================================================
-   PAUSE BUTTON
-===================================================== */
 
 document.getElementById(
     "pauseButton"
@@ -2338,10 +1788,6 @@ document.getElementById(
     pauseGame
 );
 
-
-/* =====================================================
-   RESTART BUTTON
-===================================================== */
 
 document.getElementById(
     "restartButton"
@@ -2352,7 +1798,7 @@ document.getElementById(
 
 
 /* =====================================================
-   BACK TO ARCADE
+   BACK BUTTON
 ===================================================== */
 
 document.getElementById(
@@ -2369,7 +1815,7 @@ document.getElementById(
 
 
 /* =====================================================
-   KEYBOARD CONTROLS
+   KEYBOARD
 ===================================================== */
 
 document.addEventListener(
@@ -2387,7 +1833,6 @@ document.addEventListener(
 
         }
 
-
         else if (
             event.key ===
             "ArrowRight"
@@ -2398,7 +1843,6 @@ document.addEventListener(
             move(1);
 
         }
-
 
         else if (
             event.key ===
@@ -2411,7 +1855,6 @@ document.addEventListener(
 
         }
 
-
         else if (
             event.key ===
             "ArrowUp"
@@ -2423,7 +1866,6 @@ document.addEventListener(
 
         }
 
-
         else if (
             event.code ===
             "Space"
@@ -2434,7 +1876,6 @@ document.addEventListener(
             hardDrop();
 
         }
-
 
         else if (
             event.key.toLowerCase() ===
@@ -2450,7 +1891,7 @@ document.addEventListener(
 
 
 /* =====================================================
-   MOBILE CONTROLS
+   MOBILE
 ===================================================== */
 
 document.getElementById(
@@ -2494,15 +1935,14 @@ document.getElementById(
 
 
 /* =====================================================
-   INITIAL STATE
+   INITIALISE
 ===================================================== */
 
 board =
     createBoard();
 
 
-sandParticles =
-    [];
+clearSand();
 
 
 draw();
