@@ -1,43 +1,108 @@
 /* =====================================================
    RAA'S TETRIS 2
    🌈 FALLING SAND EDITION
-   Lightweight cellular sand simulation
 ===================================================== */
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
 
-const nextCanvas = document.getElementById("nextCanvas");
-const nextCtx = nextCanvas.getContext("2d");
+/* =====================================================
+   CANVAS
+===================================================== */
+
+const canvas =
+    document.getElementById("gameCanvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const nextCanvas =
+    document.getElementById("nextCanvas");
+
+const nextCtx =
+    nextCanvas.getContext("2d");
+
+
+/* =====================================================
+   GAME SIZE
+===================================================== */
 
 const COLS = 10;
 const ROWS = 20;
+
 const BLOCK = 30;
 
 
 /* =====================================================
-   SAND ENGINE
+   SAND SETTINGS
 ===================================================== */
+
+/*
+   3px grains.
+
+   300 / 3 = 100 columns
+   600 / 3 = 200 rows
+
+   Total = 20,000 possible cells.
+
+   Because every cell is only one number,
+   this stays lightweight.
+*/
 
 const SAND_SIZE = 3;
 
 const SAND_COLS =
-    Math.floor(canvas.width / SAND_SIZE);
+    Math.floor(
+        canvas.width /
+        SAND_SIZE
+    );
 
 const SAND_ROWS =
-    Math.floor(canvas.height / SAND_SIZE);
+    Math.floor(
+        canvas.height /
+        SAND_SIZE
+    );
 
 
 /*
-   Each number represents a grain.
+   IMPORTANT:
 
-   0 = empty
-   1+ = colour index
+   One normal Tetris block contains:
+
+   10 × 10 = 100 grains.
+
+   We use 120 grains as the minimum
+   connected group.
+
+   Therefore one piece won't instantly
+   disappear by itself.
+
+   Two pieces of the same colour that
+   connect can clear.
 */
 
-const sand = new Uint8Array(
-    SAND_COLS * SAND_ROWS
-);
+const MIN_CONNECTED_SAND = 120;
+
+
+/* =====================================================
+   SAND GRID
+===================================================== */
+
+/*
+   0 = empty
+
+   1 = cyan
+   2 = yellow
+   3 = purple
+   4 = green
+   5 = pink
+   6 = blue
+   7 = orange
+*/
+
+const sand =
+    new Uint8Array(
+        SAND_COLS *
+        SAND_ROWS
+    );
 
 
 /* =====================================================
@@ -46,33 +111,13 @@ const sand = new Uint8Array(
 
 const COLOURS = [
 
-    "#00d9ff",
-    "#20e4ff",
-    "#63edff",
-
-    "#ffe600",
-    "#fff04a",
-    "#ffd000",
-
-    "#b84cff",
-    "#c866ff",
-    "#d891ff",
-
-    "#31e875",
-    "#53f28d",
-    "#7affaa",
-
-    "#ff477e",
-    "#ff6894",
-    "#ff8aaa",
-
-    "#4f7cff",
-    "#7097ff",
-    "#91adff",
-
-    "#ff9d35",
-    "#ffb45e",
-    "#ffd080"
+    "#00d9ff",   // cyan
+    "#ffe600",   // yellow
+    "#b84cff",   // purple
+    "#31e875",   // green
+    "#ff477e",   // pink
+    "#4f7cff",   // blue
+    "#ff9d35"    // orange
 
 ];
 
@@ -85,70 +130,97 @@ const PIECES = [
 
     {
         name: "I",
-        colourStart: 0,
+
+        colour: 0,
 
         shape: [
+
             [1, 1, 1, 1]
+
         ]
     },
+
 
     {
         name: "O",
-        colourStart: 3,
+
+        colour: 1,
 
         shape: [
+
             [1, 1],
             [1, 1]
+
         ]
     },
+
 
     {
         name: "T",
-        colourStart: 6,
+
+        colour: 2,
 
         shape: [
+
             [0, 1, 0],
             [1, 1, 1]
+
         ]
     },
+
 
     {
         name: "S",
-        colourStart: 9,
+
+        colour: 3,
 
         shape: [
+
             [0, 1, 1],
             [1, 1, 0]
+
         ]
     },
+
 
     {
         name: "Z",
-        colourStart: 12,
+
+        colour: 4,
 
         shape: [
+
             [1, 1, 0],
             [0, 1, 1]
+
         ]
     },
+
 
     {
         name: "J",
-        colourStart: 15,
+
+        colour: 5,
 
         shape: [
+
             [1, 0, 0],
             [1, 1, 1]
+
         ]
     },
 
+
     {
         name: "L",
-        colourStart: 18,
+
+        colour: 6,
 
         shape: [
+
             [0, 0, 1],
             [1, 1, 1]
+
         ]
     }
 
@@ -159,36 +231,171 @@ const PIECES = [
    GAME STATE
 ===================================================== */
 
-let board = [];
-
 let currentPiece = null;
+
 let nextPiece = null;
 
 let score = 0;
+
 let lines = 0;
+
 let level = 1;
 
 let dropCounter = 0;
+
 let lastTime = 0;
 
 let dropInterval = 800;
 
 let gameRunning = false;
+
 let paused = false;
 
 
 /* =====================================================
-   HELPERS
+   AUDIO
 ===================================================== */
 
-function sandIndex(x, y) {
+const bgMusic =
+    document.getElementById("bgMusic");
 
-    return y * SAND_COLS + x;
+const gameOverSound =
+    document.getElementById(
+        "gameOverSound"
+    );
+
+const lineClearSound =
+    document.getElementById(
+        "lineClearSound"
+    );
+
+const soundButton =
+    document.getElementById(
+        "soundButton"
+    );
+
+let soundEnabled = true;
+
+
+/* =====================================================
+   AUDIO FUNCTIONS
+===================================================== */
+
+function startMusic() {
+
+    if (
+        !bgMusic ||
+        !soundEnabled
+    ) {
+
+        return;
+
+    }
+
+
+    bgMusic.volume = 0.35;
+
+
+    bgMusic.play()
+        .catch(() => {
+
+            /*
+               Browsers may block autoplay.
+
+               The first user interaction will
+               allow the music to start.
+            */
+
+        });
 
 }
 
 
-function getSand(x, y) {
+function playSound(audio) {
+
+    if (
+        !audio ||
+        !soundEnabled
+    ) {
+
+        return;
+
+    }
+
+
+    audio.currentTime = 0;
+
+    audio.play()
+        .catch(() => {});
+
+}
+
+
+if (soundButton) {
+
+    soundButton.addEventListener(
+        "click",
+        () => {
+
+            soundEnabled =
+                !soundEnabled;
+
+
+            soundButton.textContent =
+                soundEnabled
+                    ? "🔊"
+                    : "🔇";
+
+
+            if (
+                soundEnabled
+            ) {
+
+                startMusic();
+
+            }
+
+            else {
+
+                if (bgMusic) {
+
+                    bgMusic.pause();
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   SAND INDEX
+===================================================== */
+
+function sandIndex(
+    x,
+    y
+) {
+
+    return (
+        y *
+        SAND_COLS
+    ) + x;
+
+}
+
+
+/* =====================================================
+   GET SAND
+===================================================== */
+
+function getSand(
+    x,
+    y
+) {
 
     if (
         x < 0 ||
@@ -201,14 +408,26 @@ function getSand(x, y) {
 
     }
 
+
     return sand[
-        sandIndex(x, y)
+        sandIndex(
+            x,
+            y
+        )
     ];
 
 }
 
 
-function setSand(x, y, value) {
+/* =====================================================
+   SET SAND
+===================================================== */
+
+function setSand(
+    x,
+    y,
+    value
+) {
 
     if (
         x < 0 ||
@@ -221,22 +440,35 @@ function setSand(x, y, value) {
 
     }
 
+
     sand[
-        sandIndex(x, y)
+        sandIndex(
+            x,
+            y
+        )
     ] = value;
 
 }
 
 
-function isSand(x, y) {
+/* =====================================================
+   IS SAND
+===================================================== */
 
-    return getSand(x, y) !== 0;
+function isSand(
+    x,
+    y
+) {
+
+    return (
+        getSand(x, y) !== 0
+    );
 
 }
 
 
 /* =====================================================
-   CLEAR SAND
+   CLEAR ALL SAND
 ===================================================== */
 
 function clearSand() {
@@ -263,17 +495,20 @@ function randomPiece() {
 
     return {
 
-        name: template.name,
+        name:
+            template.name,
 
-        colourStart:
-            template.colourStart,
+        colour:
+            template.colour,
 
         shape:
             template.shape.map(
-                row => [...row]
+                row =>
+                    [...row]
             ),
 
         x: 0,
+
         y: 0
 
     };
@@ -282,21 +517,7 @@ function randomPiece() {
 
 
 /* =====================================================
-   CREATE BOARD
-===================================================== */
-
-function createBoard() {
-
-    return Array.from(
-        { length: ROWS },
-        () => Array(COLS).fill(null)
-    );
-
-}
-
-
-/* =====================================================
-   SPAWN
+   SPAWN PIECE
 ===================================================== */
 
 function spawnPiece() {
@@ -317,7 +538,9 @@ function spawnPiece() {
         Math.floor(
             (
                 COLS -
-                currentPiece.shape[0].length
+                currentPiece
+                    .shape[0]
+                    .length
             ) / 2
         );
 
@@ -325,7 +548,14 @@ function spawnPiece() {
     drawNext();
 
 
-    if (collision()) {
+    /*
+       If the new piece cannot enter,
+       game over.
+    */
+
+    if (
+        collision()
+    ) {
 
         gameOver();
 
@@ -335,79 +565,7 @@ function spawnPiece() {
 
 
 /* =====================================================
-   COLLISION
-===================================================== */
-
-function collision() {
-
-    for (
-        let y = 0;
-        y < currentPiece.shape.length;
-        y++
-    ) {
-
-        for (
-            let x = 0;
-            x < currentPiece.shape[y].length;
-            x++
-        ) {
-
-            if (
-                !currentPiece.shape[y][x]
-            ) {
-
-                continue;
-
-            }
-
-
-            const bx =
-                currentPiece.x + x;
-
-            const by =
-                currentPiece.y + y;
-
-
-            if (
-                bx < 0 ||
-                bx >= COLS ||
-                by >= ROWS
-            ) {
-
-                return true;
-
-            }
-
-
-            /*
-               The sand pile is converted
-               into a rough Tetris collision map.
-            */
-
-            if (
-                by >= 0 &&
-                sandCellOccupied(
-                    bx,
-                    by
-                )
-            ) {
-
-                return true;
-
-            }
-
-        }
-
-    }
-
-
-    return false;
-
-}
-
-
-/* =====================================================
-   CHECK WHETHER A TETRIS CELL CONTAINS SAND
+   SAND COLLISION FOR TETRIS CELL
 ===================================================== */
 
 function sandCellOccupied(
@@ -415,22 +573,29 @@ function sandCellOccupied(
     boardY
 ) {
 
+    const grainsPerBlock =
+        BLOCK /
+        SAND_SIZE;
+
+
     const startX =
         boardX *
-        (BLOCK / SAND_SIZE);
+        grainsPerBlock;
+
 
     const startY =
         boardY *
-        (BLOCK / SAND_SIZE);
+        grainsPerBlock;
 
 
     const endX =
         startX +
-        (BLOCK / SAND_SIZE);
+        grainsPerBlock;
+
 
     const endY =
         startY +
-        (BLOCK / SAND_SIZE);
+        grainsPerBlock;
 
 
     for (
@@ -464,29 +629,144 @@ function sandCellOccupied(
 
 
 /* =====================================================
-   CONVERT LANDED TETRIS PIECE INTO SAND
+   TETRIS COLLISION
+===================================================== */
+
+function collision() {
+
+    if (!currentPiece) {
+
+        return true;
+
+    }
+
+
+    for (
+        let y = 0;
+        y <
+        currentPiece.shape.length;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x <
+            currentPiece.shape[y].length;
+            x++
+        ) {
+
+            if (
+                !currentPiece.shape[y][x]
+            ) {
+
+                continue;
+
+            }
+
+
+            const bx =
+                currentPiece.x +
+                x;
+
+
+            const by =
+                currentPiece.y +
+                y;
+
+
+            /*
+               Left wall
+            */
+
+            if (
+                bx < 0
+            ) {
+
+                return true;
+
+            }
+
+
+            /*
+               Right wall
+            */
+
+            if (
+                bx >= COLS
+            ) {
+
+                return true;
+
+            }
+
+
+            /*
+               Bottom
+            */
+
+            if (
+                by >= ROWS
+            ) {
+
+                return true;
+
+            }
+
+
+            /*
+               Sand collision
+            */
+
+            if (
+                by >= 0 &&
+                sandCellOccupied(
+                    bx,
+                    by
+                )
+            ) {
+
+                return true;
+
+            }
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =====================================================
+   TURN PIECE INTO SAND
 ===================================================== */
 
 function turnPieceIntoSand() {
 
     const grainsPerBlock =
-        BLOCK / SAND_SIZE;
+        BLOCK /
+        SAND_SIZE;
 
 
     for (
         let py = 0;
-        py < currentPiece.shape.length;
+        py <
+        currentPiece.shape.length;
         py++
     ) {
 
         for (
             let px = 0;
-            px < currentPiece.shape[py].length;
+            px <
+            currentPiece.shape[py].length;
             px++
         ) {
 
             if (
-                !currentPiece.shape[py][px]
+                !currentPiece
+                    .shape[py][px]
             ) {
 
                 continue;
@@ -511,9 +791,19 @@ function turnPieceIntoSand() {
 
 
             /*
-               Fill the Tetris cell with
-               tiny colourful grains.
+               SAME colour for every grain
+               from this Tetris piece.
+
+               This is VERY important.
+
+               Otherwise the grains would be
+               different colour IDs and would
+               never connect.
             */
+
+            const colour =
+                currentPiece.colour + 1;
+
 
             for (
                 let sy = 0;
@@ -530,26 +820,15 @@ function turnPieceIntoSand() {
                     const gx =
                         startX + sx;
 
+
                     const gy =
                         startY + sy;
-
-
-                    /*
-                       Slight randomness makes
-                       the grain colour varied.
-                    */
-
-                    const colour =
-                        currentPiece.colourStart +
-                        Math.floor(
-                            Math.random() * 3
-                        );
 
 
                     setSand(
                         gx,
                         gy,
-                        colour + 1
+                        colour
                     );
 
                 }
@@ -570,37 +849,45 @@ function turnPieceIntoSand() {
 function updateSand() {
 
     /*
-       Process from bottom upwards.
+       Bottom to top.
 
-       This is extremely cheap because
-       each location is just a Uint8 value.
+       This allows grains to fall naturally.
     */
 
     for (
-        let y = SAND_ROWS - 2;
+        let y =
+            SAND_ROWS - 2;
+
         y >= 0;
+
         y--
     ) {
 
         /*
-           Randomise direction slightly.
+           Randomise horizontal preference.
 
-           This makes the pile look less
-           perfectly symmetrical.
+           This makes the pile look natural.
         */
 
         const leftFirst =
-            Math.random() > 0.5;
+            Math.random() >
+            0.5;
 
 
         for (
             let x = 1;
-            x < SAND_COLS - 1;
+
+            x <
+            SAND_COLS - 1;
+
             x++
         ) {
 
             const current =
-                getSand(x, y);
+                getSand(
+                    x,
+                    y
+                );
 
 
             if (!current) {
@@ -611,11 +898,14 @@ function updateSand() {
 
 
             /*
-               Straight down
+               DOWN
             */
 
             if (
-                !isSand(x, y + 1)
+                !isSand(
+                    x,
+                    y + 1
+                )
             ) {
 
                 setSand(
@@ -624,11 +914,13 @@ function updateSand() {
                     0
                 );
 
+
                 setSand(
                     x,
                     y + 1,
                     current
                 );
+
 
                 continue;
 
@@ -636,7 +928,7 @@ function updateSand() {
 
 
             /*
-               Down-left
+               LEFT FIRST
             */
 
             if (leftFirst) {
@@ -654,20 +946,18 @@ function updateSand() {
                         0
                     );
 
+
                     setSand(
                         x - 1,
                         y + 1,
                         current
                     );
 
+
                     continue;
 
                 }
 
-
-                /*
-                   Down-right
-                */
 
                 if (
                     !isSand(
@@ -682,11 +972,13 @@ function updateSand() {
                         0
                     );
 
+
                     setSand(
                         x + 1,
                         y + 1,
                         current
                     );
+
 
                     continue;
 
@@ -694,11 +986,12 @@ function updateSand() {
 
             }
 
-            else {
 
-                /*
-                   Down-right first
-                */
+            /*
+               RIGHT FIRST
+            */
+
+            else {
 
                 if (
                     !isSand(
@@ -713,21 +1006,19 @@ function updateSand() {
                         0
                     );
 
+
                     setSand(
                         x + 1,
                         y + 1,
                         current
                     );
+
 
                     continue;
 
                 }
 
 
-                /*
-                   Down-left
-                */
-
                 if (
                     !isSand(
                         x - 1,
@@ -741,11 +1032,13 @@ function updateSand() {
                         0
                     );
 
+
                     setSand(
                         x - 1,
                         y + 1,
                         current
                     );
+
 
                     continue;
 
@@ -761,19 +1054,395 @@ function updateSand() {
 
 
 /* =====================================================
-   RUN MULTIPLE SAND STEPS
+   SAND SIMULATION
 ===================================================== */
 
 function simulateSand() {
 
     /*
-       Three tiny simulation steps per
-       game frame gives smooth falling.
+       Two steps is enough.
+
+       More steps = heavier CPU usage.
     */
 
     updateSand();
+
     updateSand();
-    updateSand();
+
+}
+
+
+/* =====================================================
+   FIND CONNECTED SAME-COLOUR GROUP
+===================================================== */
+
+function findConnectedGroup(
+    startX,
+    startY,
+    visited
+) {
+
+    const startColour =
+        getSand(
+            startX,
+            startY
+        );
+
+
+    if (!startColour) {
+
+        return [];
+
+    }
+
+
+    const queue = [
+
+        [startX, startY]
+
+    ];
+
+
+    const group = [];
+
+
+    visited[
+        sandIndex(
+            startX,
+            startY
+        )
+    ] = 1;
+
+
+    while (
+        queue.length
+    ) {
+
+        const current =
+            queue.pop();
+
+
+        const x =
+            current[0];
+
+
+        const y =
+            current[1];
+
+
+        group.push([
+            x,
+            y
+        ]);
+
+
+        /*
+           ONLY four directions.
+
+              UP
+               ↑
+           LEFT ← → RIGHT
+               ↓
+             DOWN
+
+           Diagonal touching does NOT connect.
+        */
+
+        const neighbours = [
+
+            [x, y - 1],
+
+            [x, y + 1],
+
+            [x - 1, y],
+
+            [x + 1, y]
+
+        ];
+
+
+        for (
+            const neighbour
+            of neighbours
+        ) {
+
+            const nx =
+                neighbour[0];
+
+
+            const ny =
+                neighbour[1];
+
+
+            if (
+                nx < 0 ||
+                nx >= SAND_COLS ||
+                ny < 0 ||
+                ny >= SAND_ROWS
+            ) {
+
+                continue;
+
+            }
+
+
+            const index =
+                sandIndex(
+                    nx,
+                    ny
+                );
+
+
+            if (
+                visited[index]
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+               MUST be the exact
+               same colour.
+            */
+
+            if (
+                getSand(
+                    nx,
+                    ny
+                ) !== startColour
+            ) {
+
+                continue;
+
+            }
+
+
+            visited[index] = 1;
+
+
+            queue.push([
+                nx,
+                ny
+            ]);
+
+        }
+
+    }
+
+
+    return group;
+
+}
+
+
+/* =====================================================
+   CLEAR SAME-COLOUR CONNECTIONS
+===================================================== */
+
+function checkSandConnections() {
+
+    const visited =
+        new Uint8Array(
+            SAND_COLS *
+            SAND_ROWS
+        );
+
+
+    let totalCleared = 0;
+
+    let groupsCleared = 0;
+
+
+    for (
+        let y = 0;
+        y < SAND_ROWS;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < SAND_COLS;
+            x++
+        ) {
+
+            const index =
+                sandIndex(
+                    x,
+                    y
+                );
+
+
+            if (
+                visited[index]
+            ) {
+
+                continue;
+
+            }
+
+
+            if (
+                !getSand(
+                    x,
+                    y
+                )
+            ) {
+
+                continue;
+
+            }
+
+
+            const group =
+                findConnectedGroup(
+                    x,
+                    y,
+                    visited
+                );
+
+
+            /*
+               A single piece is about
+               100 grains.
+
+               Requiring 120 means a group
+               normally needs sand from
+               multiple pieces.
+            */
+
+            if (
+                group.length <
+                MIN_CONNECTED_SAND
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+               Clear the entire connected
+               same-colour group.
+            */
+
+            for (
+                const cell
+                of group
+            ) {
+
+                setSand(
+                    cell[0],
+                    cell[1],
+                    0
+                );
+
+            }
+
+
+            totalCleared +=
+                group.length;
+
+
+            groupsCleared++;
+
+        }
+
+    }
+
+
+    if (
+        totalCleared === 0
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+       SCORE
+
+       Larger groups give more points.
+    */
+
+    score +=
+        totalCleared * 5;
+
+
+    lines +=
+        groupsCleared;
+
+
+    level =
+        Math.floor(
+            lines / 10
+        ) + 1;
+
+
+    dropInterval =
+        Math.max(
+            100,
+            800 -
+            (
+                level - 1
+            ) * 60
+        );
+
+
+    updateUI();
+
+
+    playSound(
+        lineClearSound
+    );
+
+
+    const popup =
+        document.getElementById(
+            "linePopup"
+        );
+
+
+    const popupText =
+        document.getElementById(
+            "linePopupText"
+        );
+
+
+    if (
+        groupsCleared >= 2
+    ) {
+
+        popupText.textContent =
+            "COLOUR COMBO! 🌈💥";
+
+    }
+
+    else {
+
+        popupText.textContent =
+            "COLOUR CONNECT! ✨";
+
+    }
+
+
+    popup.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+        () => {
+
+            popup.classList.remove(
+                "show"
+            );
+
+        },
+        900
+    );
 
 }
 
@@ -787,6 +1456,7 @@ function drawBackground() {
     ctx.fillStyle =
         "#111827";
 
+
     ctx.fillRect(
         0,
         0,
@@ -796,7 +1466,7 @@ function drawBackground() {
 
 
     /*
-       Very subtle grid
+       Very subtle Tetris grid.
     */
 
     ctx.strokeStyle =
@@ -811,15 +1481,18 @@ function drawBackground() {
 
         ctx.beginPath();
 
+
         ctx.moveTo(
             x * BLOCK,
             0
         );
 
+
         ctx.lineTo(
             x * BLOCK,
             canvas.height
         );
+
 
         ctx.stroke();
 
@@ -834,15 +1507,18 @@ function drawBackground() {
 
         ctx.beginPath();
 
+
         ctx.moveTo(
             0,
             y * BLOCK
         );
 
+
         ctx.lineTo(
             canvas.width,
             y * BLOCK
         );
+
 
         ctx.stroke();
 
@@ -856,11 +1532,6 @@ function drawBackground() {
 ===================================================== */
 
 function drawSand() {
-
-    /*
-       Each sand cell is just a tiny
-       coloured square.
-    */
 
     for (
         let y = 0;
@@ -876,7 +1547,10 @@ function drawSand() {
 
             const value =
                 sand[
-                    sandIndex(x, y)
+                    sandIndex(
+                        x,
+                        y
+                    )
                 ];
 
 
@@ -887,8 +1561,14 @@ function drawSand() {
             }
 
 
+            const colour =
+                COLOURS[
+                    value - 1
+                ];
+
+
             ctx.fillStyle =
-                COLOURS[value - 1];
+                colour;
 
 
             ctx.fillRect(
@@ -918,6 +1598,12 @@ function drawCurrentPiece() {
     }
 
 
+    const colour =
+        COLOURS[
+            currentPiece.colour
+        ];
+
+
     currentPiece.shape.forEach(
         (row, y) => {
 
@@ -945,11 +1631,9 @@ function drawCurrentPiece() {
                         ) * BLOCK;
 
 
-                    const colour =
-                        COLOURS[
-                            currentPiece.colourStart
-                        ];
-
+                    /*
+                       Main block.
+                    */
 
                     ctx.fillStyle =
                         colour;
@@ -964,11 +1648,11 @@ function drawCurrentPiece() {
 
 
                     /*
-                       Highlight
+                       Highlight.
                     */
 
                     ctx.fillStyle =
-                        "rgba(255,255,255,0.3)";
+                        "rgba(255,255,255,0.30)";
 
 
                     ctx.fillRect(
@@ -976,6 +1660,22 @@ function drawCurrentPiece() {
                         py + 3,
                         BLOCK - 6,
                         4
+                    );
+
+
+                    /*
+                       Small shine.
+                    */
+
+                    ctx.fillStyle =
+                        "rgba(255,255,255,0.12)";
+
+
+                    ctx.fillRect(
+                        px + 3,
+                        py + 7,
+                        4,
+                        BLOCK - 12
                     );
 
                 }
@@ -1003,7 +1703,7 @@ function draw() {
 
 
 /* =====================================================
-   NEXT PIECE
+   DRAW NEXT PIECE
 ===================================================== */
 
 function drawNext() {
@@ -1054,13 +1754,15 @@ function drawNext() {
 
     const startX =
         (
-            120 - width
+            120 -
+            width
         ) / 2;
 
 
     const startY =
         (
-            120 - height
+            120 -
+            height
         ) / 2;
 
 
@@ -1089,7 +1791,7 @@ function drawNext() {
 
                     nextCtx.fillStyle =
                         COLOURS[
-                            nextPiece.colourStart
+                            nextPiece.colour
                         ];
 
 
@@ -1110,14 +1812,17 @@ function drawNext() {
 
 
 /* =====================================================
-   MOVE
+   MOVE LEFT / RIGHT
 ===================================================== */
 
-function move(direction) {
+function move(
+    direction
+) {
 
     if (
         !gameRunning ||
-        paused
+        paused ||
+        !currentPiece
     ) {
 
         return;
@@ -1129,12 +1834,17 @@ function move(direction) {
         direction;
 
 
-    if (collision()) {
+    if (
+        collision()
+    ) {
 
         currentPiece.x -=
             direction;
 
     }
+
+
+    draw();
 
 }
 
@@ -1147,7 +1857,8 @@ function softDrop() {
 
     if (
         !gameRunning ||
-        paused
+        paused ||
+        !currentPiece
     ) {
 
         return;
@@ -1158,9 +1869,12 @@ function softDrop() {
     currentPiece.y++;
 
 
-    if (collision()) {
+    if (
+        collision()
+    ) {
 
         currentPiece.y--;
+
 
         lockPiece();
 
@@ -1168,6 +1882,9 @@ function softDrop() {
 
 
     dropCounter = 0;
+
+
+    draw();
 
 }
 
@@ -1180,7 +1897,8 @@ function hardDrop() {
 
     if (
         !gameRunning ||
-        paused
+        paused ||
+        !currentPiece
     ) {
 
         return;
@@ -1199,7 +1917,11 @@ function hardDrop() {
 
     currentPiece.y--;
 
+
     lockPiece();
+
+
+    draw();
 
 }
 
@@ -1212,7 +1934,8 @@ function rotatePiece() {
 
     if (
         !gameRunning ||
-        paused
+        paused ||
+        !currentPiece
     ) {
 
         return;
@@ -1222,6 +1945,10 @@ function rotatePiece() {
 
     const oldShape =
         currentPiece.shape;
+
+
+    const oldX =
+        currentPiece.x;
 
 
     const rotated =
@@ -1240,254 +1967,159 @@ function rotatePiece() {
         rotated;
 
 
-    if (collision()) {
-
-        currentPiece.x++;
-
-
-        if (collision()) {
-
-            currentPiece.x -= 2;
-
-
-            if (collision()) {
-
-                currentPiece.x++;
-
-                currentPiece.shape =
-                    oldShape;
-
-            }
-
-        }
-
-    }
-
-}
-
-
-/* =====================================================
-   LOCK
-===================================================== */
-
-function lockPiece() {
-
-    turnPieceIntoSand();
-
-    spawnPiece();
-
-    dropCounter = 0;
-
-}
-
-
-/* =====================================================
-   SIMPLE SAND LINE CLEAR
-===================================================== */
-
-function checkSandLines() {
-
     /*
-       A row is considered full when
-       around 92% of its tiny cells
-       contain sand.
+       Normal position.
     */
 
-    const required =
-        Math.floor(
-            SAND_COLS * 0.92
-        );
-
-
-    let cleared = 0;
-
-
-    for (
-        let y = SAND_ROWS - 1;
-        y >= 0;
-        y--
+    if (
+        !collision()
     ) {
 
-        let count = 0;
-
-
-        for (
-            let x = 0;
-            x < SAND_COLS;
-            x++
-        ) {
-
-            if (
-                getSand(x, y)
-            ) {
-
-                count++;
-
-            }
-
-        }
-
-
-        if (
-            count < required
-        ) {
-
-            continue;
-
-        }
-
-
-        /*
-           Remove this row.
-        */
-
-        for (
-            let yy = y;
-            yy > 0;
-            yy--
-        ) {
-
-            for (
-                let x = 0;
-                x < SAND_COLS;
-                x++
-            ) {
-
-                setSand(
-                    x,
-                    yy,
-                    getSand(
-                        x,
-                        yy - 1
-                    )
-                );
-
-            }
-
-        }
-
-
-        /*
-           Empty top row.
-        */
-
-        for (
-            let x = 0;
-            x < SAND_COLS;
-            x++
-        ) {
-
-            setSand(
-                x,
-                0,
-                0
-            );
-
-        }
-
-
-        cleared++;
-
-        y++;
-
-    }
-
-
-    if (!cleared) {
+        draw();
 
         return;
 
     }
 
 
-    score +=
-        cleared *
-        100 *
-        level;
+    /*
+       Try moving right.
+    */
+
+    currentPiece.x++;
 
 
-    lines +=
-        cleared;
+    if (
+        !collision()
+    ) {
+
+        draw();
+
+        return;
+
+    }
 
 
-    level =
-        Math.floor(
-            lines / 10
-        ) + 1;
+    /*
+       Try moving left twice.
+    */
+
+    currentPiece.x -= 2;
 
 
-    dropInterval =
-        Math.max(
-            100,
-            800 -
-            (
-                level - 1
-            ) * 60
-        );
+    if (
+        !collision()
+    ) {
+
+        draw();
+
+        return;
+
+    }
 
 
-    updateUI();
+    /*
+       Rotation impossible.
+       Restore everything.
+    */
+
+    currentPiece.x =
+        oldX;
 
 
-    const popup =
-        document.getElementById(
-            "linePopup"
-        );
+    currentPiece.shape =
+        oldShape;
 
 
-    const popupText =
-        document.getElementById(
-            "linePopupText"
-        );
-
-
-    popupText.textContent =
-        cleared >= 4
-            ? "SAND BLAST! 🌈"
-            : "NICE! ✨";
-
-
-    popup.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            popup.classList.remove(
-                "show"
-            );
-
-        },
-        900
-    );
+    draw();
 
 }
 
 
 /* =====================================================
-   UI
+   LOCK PIECE
+===================================================== */
+
+function lockPiece() {
+
+    /*
+       Convert the falling block
+       into physical sand.
+    */
+
+    turnPieceIntoSand();
+
+
+    /*
+       Immediately check whether
+       this created a same-colour
+       connection.
+    */
+
+    checkSandConnections();
+
+
+    /*
+       Spawn the next falling piece.
+    */
+
+    spawnPiece();
+
+
+    dropCounter = 0;
+
+
+    draw();
+
+}
+
+
+/* =====================================================
+   UPDATE UI
 ===================================================== */
 
 function updateUI() {
 
-    document.getElementById(
-        "score"
-    ).textContent =
-        score;
+    const scoreElement =
+        document.getElementById(
+            "score"
+        );
 
 
-    document.getElementById(
-        "lines"
-    ).textContent =
-        lines;
+    const linesElement =
+        document.getElementById(
+            "lines"
+        );
 
 
-    document.getElementById(
-        "level"
-    ).textContent =
-        level;
+    const levelElement =
+        document.getElementById(
+            "level"
+        );
+
+
+    if (scoreElement) {
+
+        scoreElement.textContent =
+            score;
+
+    }
+
+
+    if (linesElement) {
+
+        linesElement.textContent =
+            lines;
+
+    }
+
+
+    if (levelElement) {
+
+        levelElement.textContent =
+            level;
+
+    }
 
 }
 
@@ -1496,9 +2128,13 @@ function updateUI() {
    GAME LOOP
 ===================================================== */
 
-function update(time = 0) {
+function update(
+    time = 0
+) {
 
-    if (!gameRunning) {
+    if (
+        !gameRunning
+    ) {
 
         return;
 
@@ -1506,7 +2142,8 @@ function update(time = 0) {
 
 
     const delta =
-        time - lastTime;
+        time -
+        lastTime;
 
 
     lastTime =
@@ -1519,8 +2156,12 @@ function update(time = 0) {
             delta;
 
 
+        /*
+           Automatic falling.
+        */
+
         if (
-            dropCounter >
+            dropCounter >=
             dropInterval
         ) {
 
@@ -1530,22 +2171,28 @@ function update(time = 0) {
 
 
         /*
-           Sand simulation
+           Sand physics.
+
+           Lightweight.
         */
 
         simulateSand();
 
 
         /*
-           Check rows occasionally,
-           NOT every single frame.
+           Occasionally check for
+           connections created by
+           falling sand.
+
+           We also check immediately
+           when a piece lands.
         */
 
         if (
-            Math.random() < 0.08
+            Math.random() < 0.06
         ) {
 
-            checkSandLines();
+            checkSandConnections();
 
         }
 
@@ -1563,7 +2210,7 @@ function update(time = 0) {
 
 
 /* =====================================================
-   START
+   START GAME
 ===================================================== */
 
 function startGame() {
@@ -1571,26 +2218,35 @@ function startGame() {
     clearSand();
 
 
-    board =
-        createBoard();
+    currentPiece =
+        null;
 
 
-    currentPiece = null;
-    nextPiece = null;
+    nextPiece =
+        null;
 
 
     score = 0;
+
     lines = 0;
+
     level = 1;
 
 
-    dropInterval = 800;
+    dropInterval =
+        800;
 
-    dropCounter = 0;
+
+    dropCounter =
+        0;
 
 
-    gameRunning = true;
-    paused = false;
+    gameRunning =
+        true;
+
+
+    paused =
+        false;
 
 
     updateUI();
@@ -1606,12 +2262,12 @@ function startGame() {
         performance.now();
 
 
+    startMusic();
+
+
     requestAnimationFrame(
         update
     );
-
-
-    startMusic();
 
 }
 
@@ -1622,7 +2278,9 @@ function startGame() {
 
 function pauseGame() {
 
-    if (!gameRunning) {
+    if (
+        !gameRunning
+    ) {
 
         return;
 
@@ -1633,12 +2291,20 @@ function pauseGame() {
         !paused;
 
 
-    document.getElementById(
-        "pauseButton"
-    ).textContent =
-        paused
-            ? "▶ Resume"
-            : "⏸ Pause";
+    const button =
+        document.getElementById(
+            "pauseButton"
+        );
+
+
+    if (button) {
+
+        button.textContent =
+            paused
+                ? "▶ Resume"
+                : "⏸ Pause";
+
+    }
 
 
     if (paused) {
@@ -1655,6 +2321,9 @@ function pauseGame() {
 
         hideOverlay();
 
+        lastTime =
+            performance.now();
+
     }
 
 }
@@ -1665,6 +2334,15 @@ function pauseGame() {
 ===================================================== */
 
 function restartGame() {
+
+    if (
+        bgMusic
+    ) {
+
+        bgMusic.currentTime = 0;
+
+    }
+
 
     startGame();
 
@@ -1677,12 +2355,17 @@ function restartGame() {
 
 function gameOver() {
 
-    gameRunning = false;
+    gameRunning =
+        false;
+
+
+    playSound(
+        gameOverSound
+    );
 
 
     if (
-        typeof bgMusic !==
-        "undefined"
+        bgMusic
     ) {
 
         bgMusic.pause();
@@ -1709,118 +2392,214 @@ function showOverlay(
     buttonText
 ) {
 
-    document.getElementById(
-        "overlayTitle"
-    ).textContent =
-        title;
+    const overlay =
+        document.getElementById(
+            "overlay"
+        );
 
 
-    document.getElementById(
-        "overlaySubtitle"
-    ).textContent =
-        subtitle;
+    const titleElement =
+        document.getElementById(
+            "overlayTitle"
+        );
 
 
-    document.getElementById(
-        "mainOverlayButton"
-    ).textContent =
-        buttonText;
+    const subtitleElement =
+        document.getElementById(
+            "overlaySubtitle"
+        );
 
 
-    document.getElementById(
-        "overlay"
-    ).classList.remove(
-        "hidden"
-    );
+    const mainButton =
+        document.getElementById(
+            "mainOverlayButton"
+        );
+
+
+    if (titleElement) {
+
+        titleElement.textContent =
+            title;
+
+    }
+
+
+    if (subtitleElement) {
+
+        subtitleElement.textContent =
+            subtitle;
+
+    }
+
+
+    if (mainButton) {
+
+        mainButton.textContent =
+            buttonText;
+
+    }
+
+
+    if (overlay) {
+
+        overlay.classList.remove(
+            "hidden"
+        );
+
+    }
 
 }
 
+
+/* =====================================================
+   HIDE OVERLAY
+===================================================== */
 
 function hideOverlay() {
 
+    const overlay =
+        document.getElementById(
+            "overlay"
+        );
+
+
+    if (overlay) {
+
+        overlay.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   MAIN OVERLAY BUTTON
+===================================================== */
+
+const mainOverlayButton =
     document.getElementById(
-        "overlay"
-    ).classList.add(
-        "hidden"
+        "mainOverlayButton"
+    );
+
+
+if (
+    mainOverlayButton
+) {
+
+    mainOverlayButton.addEventListener(
+        "click",
+        () => {
+
+            const title =
+                document.getElementById(
+                    "overlayTitle"
+                ).textContent;
+
+
+            if (
+                title === "Paused"
+            ) {
+
+                pauseGame();
+
+            }
+
+            else {
+
+                startGame();
+
+            }
+
+        }
     );
 
 }
 
 
 /* =====================================================
-   BUTTONS
+   PAUSE BUTTON
 ===================================================== */
 
-document.getElementById(
-    "mainOverlayButton"
-).addEventListener(
-    "click",
-    () => {
-
-        const title =
-            document.getElementById(
-                "overlayTitle"
-            ).textContent;
+const pauseButton =
+    document.getElementById(
+        "pauseButton"
+    );
 
 
-        if (
-            title === "Paused"
-        ) {
+if (
+    pauseButton
+) {
 
-            pauseGame();
+    pauseButton.addEventListener(
+        "click",
+        pauseGame
+    );
 
-        }
-
-        else {
-
-            startGame();
-
-        }
-
-    }
-);
-
-
-document.getElementById(
-    "pauseButton"
-).addEventListener(
-    "click",
-    pauseGame
-);
-
-
-document.getElementById(
-    "restartButton"
-).addEventListener(
-    "click",
-    restartGame
-);
+}
 
 
 /* =====================================================
-   BACK BUTTON
+   RESTART BUTTON
 ===================================================== */
 
-document.getElementById(
-    "backButton"
-).addEventListener(
-    "click",
-    () => {
+const restartButton =
+    document.getElementById(
+        "restartButton"
+    );
 
-        window.location.href =
-            "https://ruzrun.github.io/arcade-game/";
 
-    }
-);
+if (
+    restartButton
+) {
+
+    restartButton.addEventListener(
+        "click",
+        restartGame
+    );
+
+}
 
 
 /* =====================================================
-   KEYBOARD
+   BACK TO ARCADE
+===================================================== */
+
+const backButton =
+    document.getElementById(
+        "backButton"
+    );
+
+
+if (
+    backButton
+) {
+
+    backButton.addEventListener(
+        "click",
+        () => {
+
+            window.location.href =
+                "https://ruzrun.github.io/arcade-game/";
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   KEYBOARD CONTROLS
 ===================================================== */
 
 document.addEventListener(
     "keydown",
     event => {
+
+        /*
+           LEFT
+        */
 
         if (
             event.key ===
@@ -1831,9 +2610,16 @@ document.addEventListener(
 
             move(-1);
 
+            return;
+
         }
 
-        else if (
+
+        /*
+           RIGHT
+        */
+
+        if (
             event.key ===
             "ArrowRight"
         ) {
@@ -1842,9 +2628,16 @@ document.addEventListener(
 
             move(1);
 
+            return;
+
         }
 
-        else if (
+
+        /*
+           DOWN
+        */
+
+        if (
             event.key ===
             "ArrowDown"
         ) {
@@ -1853,9 +2646,16 @@ document.addEventListener(
 
             softDrop();
 
+            return;
+
         }
 
-        else if (
+
+        /*
+           UP / ROTATE
+        */
+
+        if (
             event.key ===
             "ArrowUp"
         ) {
@@ -1864,9 +2664,16 @@ document.addEventListener(
 
             rotatePiece();
 
+            return;
+
         }
 
-        else if (
+
+        /*
+           SPACE / HARD DROP
+        */
+
+        if (
             event.code ===
             "Space"
         ) {
@@ -1875,12 +2682,21 @@ document.addEventListener(
 
             hardDrop();
 
+            return;
+
         }
 
-        else if (
+
+        /*
+           P / PAUSE
+        */
+
+        if (
             event.key.toLowerCase() ===
             "p"
         ) {
+
+            event.preventDefault();
 
             pauseGame();
 
@@ -1891,56 +2707,126 @@ document.addEventListener(
 
 
 /* =====================================================
-   MOBILE
+   MOBILE LEFT
 ===================================================== */
 
-document.getElementById(
-    "leftButton"
-).addEventListener(
-    "click",
-    () => move(-1)
-);
+const leftButton =
+    document.getElementById(
+        "leftButton"
+    );
 
 
-document.getElementById(
-    "rightButton"
-).addEventListener(
-    "click",
-    () => move(1)
-);
+if (
+    leftButton
+) {
+
+    leftButton.addEventListener(
+        "click",
+        () => {
+
+            move(-1);
+
+        }
+    );
+
+}
 
 
-document.getElementById(
-    "rotateButton"
-).addEventListener(
-    "click",
-    rotatePiece
-);
+/* =====================================================
+   MOBILE RIGHT
+===================================================== */
+
+const rightButton =
+    document.getElementById(
+        "rightButton"
+    );
 
 
-document.getElementById(
-    "downButton"
-).addEventListener(
-    "click",
-    softDrop
-);
+if (
+    rightButton
+) {
+
+    rightButton.addEventListener(
+        "click",
+        () => {
+
+            move(1);
+
+        }
+    );
+
+}
 
 
-document.getElementById(
-    "dropButton"
-).addEventListener(
-    "click",
-    hardDrop
-);
+/* =====================================================
+   MOBILE ROTATE
+===================================================== */
+
+const rotateButton =
+    document.getElementById(
+        "rotateButton"
+    );
+
+
+if (
+    rotateButton
+) {
+
+    rotateButton.addEventListener(
+        "click",
+        rotatePiece
+    );
+
+}
+
+
+/* =====================================================
+   MOBILE DOWN
+===================================================== */
+
+const downButton =
+    document.getElementById(
+        "downButton"
+    );
+
+
+if (
+    downButton
+) {
+
+    downButton.addEventListener(
+        "click",
+        softDrop
+    );
+
+}
+
+
+/* =====================================================
+   MOBILE HARD DROP
+===================================================== */
+
+const dropButton =
+    document.getElementById(
+        "dropButton"
+    );
+
+
+if (
+    dropButton
+) {
+
+    dropButton.addEventListener(
+        "click",
+        hardDrop
+    );
+
+}
 
 
 /* =====================================================
    INITIALISE
 ===================================================== */
-
-board =
-    createBoard();
-
 
 clearSand();
 
