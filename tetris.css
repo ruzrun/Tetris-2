@@ -1,0 +1,1523 @@
+/* =====================================================
+RESET
+===================================================== */
+
+{
+
+box-sizing: border-box;
+
+margin: 0;
+
+padding: 0;
+
+}
+
+html,
+body {
+
+width: 100%;
+
+min-height: 100%;
+
+margin: 0;
+
+padding: 0;
+
+}
+
+/* =====================================================
+BODY
+===================================================== */
+
+body {
+
+min-height: 100vh;
+
+min-height: 100svh;
+
+font-family:
+    'Poppins',
+    sans-serif;
+
+
+background:
+
+    radial-gradient(
+        circle at 15% 20%,
+        rgba(255, 180, 215, 0.75),
+        transparent 35%
+    ),
+
+    radial-gradient(
+        circle at 80% 25%,
+        rgba(200, 170, 255, 0.75),
+        transparent 35%
+    ),
+
+    radial-gradient(
+        circle at 60% 85%,
+        rgba(170, 220, 255, 0.75),
+        transparent 40%
+    ),
+
+    linear-gradient(
+        120deg,
+        #fff0f7,
+        #f2e8ff,
+        #e5f4ff,
+        #fff0f7
+    );
+
+
+background-size:
+
+    180% 180%,
+    180% 180%,
+    180% 180%,
+    400% 400%;
+
+
+animation:
+    gradientMove 24s ease-in-out infinite;
+
+
+background-attachment: fixed;
+
+background-repeat: no-repeat;
+
+color: #333;
+
+overflow-x: hidden;
+
+}
+
+/* =====================================================
+MOVING BACKGROUND
+===================================================== */
+
+@keyframes gradientMove {
+
+0% {
+
+    background-position:
+        0% 20%,
+        100% 20%,
+        50% 100%,
+        0% 50%;
+
+}
+
+
+20% {
+
+    background-position:
+        40% 0%,
+        70% 60%,
+        100% 40%,
+        30% 70%;
+
+}
+
+
+40% {
+
+    background-position:
+        100% 30%,
+        20% 100%,
+        40% 0%,
+        70% 20%;
+
+}
+
+
+60% {
+
+    background-position:
+        70% 100%,
+        0% 40%,
+        100% 70%,
+        100% 80%;
+
+}
+
+
+80% {
+
+    background-position:
+        20% 70%,
+        100% 0%,
+        0% 30%,
+        30% 0%;
+
+}
+
+
+100% {
+
+    background-position:
+        0% 20%,
+        100% 20%,
+        50% 100%,
+        0% 50%;
+
+}
+
+}
+
+/* =====================================================
+GAME WRAPPER
+===================================================== */
+
+.game-wrapper {
+
+width: 100%;
+
+min-height: 100vh;
+
+min-height: 100svh;
+
+display: flex;
+
+justify-content: center;
+
+align-items: center;
+
+padding:
+    70px
+    20px
+    30px;
+
+}
+
+/* =====================================================
+GAME CONTAINER
+===================================================== */
+
+.game-container {
+
+width: 100%;
+
+display: flex;
+
+justify-content: center;
+
+align-items: center;
+
+gap: 25px;
+
+}
+
+/* =====================================================
+BOARD
+===================================================== */
+
+.board-container {
+
+position: relative;
+
+flex-shrink: 0;
+
+background: #222;
+
+padding: 8px;
+
+border-radius: 14px;
+
+box-shadow:
+
+    0 15px 40px
+    rgba(0, 0, 0, 0.20),
+
+    0 0 0 3px
+    rgba(255, 255, 255, 0.65);
+
+}
+
+#gameCanvas {
+
+display: block;
+
+width: 300px;
+
+height: 600px;
+
+background: #111;
+
+border-radius: 7px;
+
+}
+
+/* =====================================================
+SIDE PANEL
+===================================================== */
+
+.side-panel {
+
+width: 210px;
+
+display: flex;
+
+flex-direction: column;
+
+gap: 15px;
+
+}
+
+/* =====================================================
+LOGO
+===================================================== */
+
+.logo {
+
+font-family:
+    'Dancing Script',
+    cursive;
+
+font-size: 34px;
+
+font-weight: 700;
+
+text-align: center;
+
+color: #444;
+
+}
+
+.logo span {
+
+color: #d96c9b;
+
+}
+
+/* =====================================================
+INFO CARDS
+===================================================== */
+
+.info-card {
+
+background:
+    rgba(255, 255, 255, 0.55);
+
+backdrop-filter:
+    blur(14px);
+
+-webkit-backdrop-filter:
+    blur(14px);
+
+border:
+    1px solid
+    rgba(255, 255, 255, 0.65);
+
+border-radius: 18px;
+
+padding: 16px;
+
+box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.08);
+
+text-align: center;
+
+}
+
+.info-title {
+
+font-size: 12px;
+
+font-weight: 600;
+
+letter-spacing: 1px;
+
+color: #888;
+
+margin-bottom: 4px;
+
+}
+
+.info-value {
+
+font-size: 25px;
+
+font-weight: 700;
+
+color: #444;
+
+}
+
+/* =====================================================
+NEXT
+===================================================== */
+
+.next-title {
+
+font-size: 13px;
+
+font-weight: 600;
+
+letter-spacing: 1px;
+
+color: #777;
+
+margin-bottom: 8px;
+
+}
+
+#nextCanvas {
+
+display: block;
+
+width: 120px;
+
+height: 120px;
+
+margin: auto;
+
+background:
+    rgba(255, 255, 255, 0.55);
+
+border-radius: 10px;
+
+}
+
+/* =====================================================
+BUTTONS
+===================================================== */
+
+.button {
+
+width: 100%;
+
+border: none;
+
+padding: 12px 14px;
+
+border-radius: 14px;
+
+font-family:
+    'Poppins',
+    sans-serif;
+
+font-size: 14px;
+
+font-weight: 600;
+
+cursor: pointer;
+
+transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+}
+
+.button {
+
+transform:
+    translateY(-2px);
+
+box-shadow:
+    0 8px 18px
+    rgba(0, 0, 0, 0.12);
+
+}
+
+.button {
+
+transform:
+    scale(0.97);
+
+}
+
+.pause-btn {
+
+background:
+    rgba(243, 199, 107, 0.92);
+
+color: white;
+
+}
+
+.restart-btn {
+
+background:
+    rgba(217, 108, 155, 0.92);
+
+color: white;
+
+}
+
+/* =====================================================
+OVERLAY
+===================================================== */
+
+.overlay {
+
+position: absolute;
+
+inset: 8px;
+
+border-radius: 7px;
+
+background:
+
+    linear-gradient(
+        135deg,
+        rgba(255, 230, 242, 0.96),
+        rgba(238, 226, 255, 0.96),
+        rgba(225, 242, 255, 0.96)
+    );
+
+
+display: flex;
+
+justify-content: center;
+
+align-items: center;
+
+text-align: center;
+
+z-index: 100;
+
+
+backdrop-filter:
+    blur(8px);
+
+-webkit-backdrop-filter:
+    blur(8px);
+
+}
+
+.overlay.hidden {
+
+display: none;
+
+}
+
+/* =====================================================
+OVERLAY BOX
+===================================================== */
+
+.overlay-box {
+
+width: 85%;
+
+max-width: 300px;
+
+padding: 25px;
+
+border-radius: 22px;
+
+background:
+    rgba(255, 255, 255, 0.40);
+
+border:
+    1px solid
+    rgba(255, 255, 255, 0.65);
+
+box-shadow:
+    0 12px 35px
+    rgba(0, 0, 0, 0.10);
+
+backdrop-filter:
+    blur(10px);
+
+-webkit-backdrop-filter:
+    blur(10px);
+
+}
+
+.overlay-title {
+
+font-family:
+    'Dancing Script',
+    cursive;
+
+font-size: 48px;
+
+font-weight: 700;
+
+color: #d96c9b;
+
+margin-bottom: 5px;
+
+}
+
+.overlay-subtitle {
+
+font-size: 14px;
+
+color: #777;
+
+margin-bottom: 25px;
+
+}
+
+.overlay-button {
+
+display: block;
+
+width: 100%;
+
+border: none;
+
+padding: 13px;
+
+margin-top: 10px;
+
+border-radius: 15px;
+
+font-family:
+    'Poppins',
+    sans-serif;
+
+font-weight: 600;
+
+font-size: 14px;
+
+cursor: pointer;
+
+}
+
+.overlay-button {
+
+transform:
+    scale(0.97);
+
+}
+
+.start-button {
+
+background:
+
+    linear-gradient(
+        135deg,
+        #d96c9b,
+        #b879d6
+    );
+
+color: white;
+
+}
+
+.cancel-button {
+
+background:
+    rgba(255, 255, 255, 0.72);
+
+color: #555;
+
+display: none;
+
+}
+
+/* =====================================================
+LINE CLEAR POPUP
+===================================================== */
+
+.line-popup {
+
+position: absolute;
+
+left: 50%;
+
+top: 45%;
+
+transform:
+    translate(-50%, -50%)
+    scale(0.7);
+
+opacity: 0;
+
+pointer-events: none;
+
+z-index: 200;
+
+transition:
+    opacity 0.2s ease,
+    transform 0.25s ease;
+
+}
+
+.line-popup.show {
+
+opacity: 1;
+
+transform:
+    translate(-50%, -50%)
+    scale(1);
+
+}
+
+.line-popup-text {
+
+padding:
+    14px
+    24px;
+
+border-radius: 18px;
+
+background:
+    rgba(255, 255, 255, 0.92);
+
+border:
+    2px solid
+    rgba(217, 108, 155, 0.35);
+
+box-shadow:
+    0 12px 35px
+    rgba(0, 0, 0, 0.18);
+
+font-family:
+    'Dancing Script',
+    cursive;
+
+font-size: 32px;
+
+font-weight: 700;
+
+color: #d96c9b;
+
+white-space: nowrap;
+
+}
+
+/* =====================================================
+MOBILE CONTROLS
+===================================================== */
+
+.mobile-controls {
+
+display: none;
+
+}
+
+.mobile-row {
+
+display: flex;
+
+justify-content: center;
+
+gap: 8px;
+
+margin-top: 8px;
+
+}
+
+.control-btn {
+
+width: 52px;
+
+height: 42px;
+
+border: none;
+
+border-radius: 12px;
+
+background:
+    rgba(255, 255, 255, 0.80);
+
+font-size: 20px;
+
+color: #555;
+
+cursor: pointer;
+
+touch-action: manipulation;
+
+user-select: none;
+
+-webkit-user-select: none;
+
+-webkit-tap-highlight-color:
+    transparent;
+
+}
+
+.control-btn {
+
+transform:
+    scale(0.93);
+
+}
+
+/* =====================================================
+BACK BUTTON
+===================================================== */
+
+.back-arcade-fixed {
+
+position: fixed;
+
+top: 15px;
+
+left: 15px;
+
+z-index: 9999;
+
+padding: 10px 16px;
+
+border:
+    1px solid
+    rgba(255, 255, 255, 0.8);
+
+border-radius: 14px;
+
+background:
+    rgba(255, 255, 255, 0.70);
+
+backdrop-filter:
+    blur(12px);
+
+-webkit-backdrop-filter:
+    blur(12px);
+
+color: #555;
+
+font-family:
+    'Poppins',
+    sans-serif;
+
+font-size: 14px;
+
+font-weight: 600;
+
+cursor: pointer;
+
+box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.10);
+
+}
+
+/* =====================================================
+SOUND BUTTON
+===================================================== */
+
+.sound-fixed {
+
+position: fixed;
+
+top: 15px;
+
+right: 15px;
+
+z-index: 9999;
+
+width: 44px;
+
+height: 44px;
+
+border:
+    1px solid
+    rgba(255, 255, 255, 0.8);
+
+border-radius: 14px;
+
+background:
+    rgba(255, 255, 255, 0.70);
+
+backdrop-filter:
+    blur(12px);
+
+-webkit-backdrop-filter:
+    blur(12px);
+
+color: #555;
+
+font-size: 20px;
+
+cursor: pointer;
+
+display: flex;
+
+justify-content: center;
+
+align-items: center;
+
+box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.10);
+
+transition:
+    transform 0.15s ease;
+
+touch-action: manipulation;
+
+-webkit-tap-highlight-color:
+    transparent;
+
+}
+
+.sound-fixed {
+
+transform:
+    scale(0.92);
+
+}
+
+/* =====================================================
+TABLET
+===================================================== */
+
+@media (max-width: 900px)
+and (min-width: 701px) {
+
+.game-container {
+
+    gap: 15px;
+
+}
+
+
+.side-panel {
+
+    width: 190px;
+
+}
+
+}
+
+/* =====================================================
+MOBILE
+===================================================== */
+
+@media (max-width: 700px) {
+
+html,
+body {
+
+    width: 100%;
+
+    height: 100%;
+
+    margin: 0;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    touch-action: manipulation;
+
+    -webkit-text-size-adjust: 100%;
+
+}
+
+
+body {
+
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100svh;
+
+}
+
+
+/* ===============================================
+   PAGE
+=============================================== */
+
+.game-wrapper {
+
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100svh;
+
+    min-height: 0;
+
+    padding:
+
+        calc(
+            50px +
+            env(safe-area-inset-top)
+        )
+
+        7px
+
+        calc(
+            78px +
+            env(safe-area-inset-bottom)
+        );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    overflow: hidden;
+
+}
+
+
+/* ===============================================
+   GAME
+=============================================== */
+
+.game-container {
+
+    width: 100%;
+
+    max-width: 500px;
+
+    min-width: 0;
+
+    height: auto;
+
+    display: flex;
+
+    flex-direction: row;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+}
+
+
+/* ===============================================
+   BOARD
+=============================================== */
+
+.board-container {
+
+    flex:
+        0 1 auto;
+
+    width: auto;
+
+    height:
+        min(
+            72svh,
+            500px
+        );
+
+    aspect-ratio:
+        1 / 2;
+
+    max-width: 65vw;
+
+    max-height:
+        calc(
+            100svh - 135px
+        );
+
+    padding: 4px;
+
+    margin: 0;
+
+    border-radius: 9px;
+
+}
+
+
+#gameCanvas {
+
+    width: 100%;
+
+    height: 100%;
+
+    max-width: 100%;
+
+    max-height: 100%;
+
+    aspect-ratio:
+        1 / 2;
+
+    border-radius: 5px;
+
+}
+
+
+/* ===============================================
+   SIDE PANEL
+=============================================== */
+
+.side-panel {
+
+    flex:
+        1 1 auto;
+
+    width: auto;
+
+    max-width: 135px;
+
+    min-width: 90px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    justify-content: center;
+
+    gap: 6px;
+
+    overflow: hidden;
+
+}
+
+
+/* ===============================================
+   LOGO
+=============================================== */
+
+.logo {
+
+    width: 100%;
+
+    font-size: 20px;
+
+    line-height: 1.1;
+
+    text-align: center;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ===============================================
+   INFO
+=============================================== */
+
+.info-card {
+
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 50px;
+
+    padding: 7px;
+
+    border-radius: 11px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    overflow: hidden;
+
+}
+
+
+.info-title {
+
+    font-size: 8px;
+
+    letter-spacing: 0.5px;
+
+    margin-bottom: 2px;
+
+}
+
+
+.info-value {
+
+    font-size: 18px;
+
+    line-height: 1;
+
+}
+
+
+/* ===============================================
+   HIDE NEXT
+=============================================== */
+
+.next-card {
+
+    display: none;
+
+}
+
+
+/* ===============================================
+   PAUSE / RESTART
+=============================================== */
+
+.pause-btn,
+.restart-btn {
+
+    width: 100%;
+
+    min-height: 34px;
+
+    padding: 6px;
+
+    margin: 0;
+
+    font-size: 9px;
+
+    border-radius: 10px;
+
+    position: relative;
+
+    z-index: 20;
+
+    touch-action: manipulation;
+
+}
+
+
+/* ===============================================
+   MOBILE CONTROLS
+=============================================== */
+
+.mobile-controls {
+
+    position: fixed;
+
+    left: 0;
+
+    right: 0;
+
+    bottom:
+        calc(
+            5px +
+            env(safe-area-inset-bottom)
+        );
+
+    width: 100%;
+
+    display: block;
+
+    z-index: 99999;
+
+    margin: 0;
+
+    padding: 0;
+
+}
+
+
+.mobile-row {
+
+    width: 100%;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin: 3px 0;
+
+}
+
+
+.control-btn {
+
+    width: 48px;
+
+    height: 34px;
+
+    padding: 0;
+
+    font-size: 18px;
+
+    border-radius: 10px;
+
+}
+
+
+/* ===============================================
+   BACK BUTTON
+=============================================== */
+
+.back-arcade-fixed {
+
+    top:
+        calc(
+            8px +
+            env(safe-area-inset-top)
+        );
+
+    left: 8px;
+
+    padding: 7px 11px;
+
+    font-size: 11px;
+
+}
+
+
+/* ===============================================
+   SOUND BUTTON
+=============================================== */
+
+.sound-fixed {
+
+    top:
+        calc(
+            8px +
+            env(safe-area-inset-top)
+        );
+
+    right: 8px;
+
+    width: 38px;
+
+    height: 38px;
+
+    border-radius: 12px;
+
+    font-size: 17px;
+
+}
+
+
+/* ===============================================
+   OVERLAY
+=============================================== */
+
+.overlay {
+
+    inset: 4px;
+
+    border-radius: 5px;
+
+    z-index: 100000;
+
+}
+
+
+.overlay-box {
+
+    width: 82%;
+
+    max-width: 250px;
+
+    padding: 17px;
+
+    border-radius: 18px;
+
+}
+
+
+.overlay-title {
+
+    font-size: 38px;
+
+}
+
+
+.overlay-subtitle {
+
+    font-size: 11px;
+
+    margin-bottom: 15px;
+
+}
+
+
+.overlay-button {
+
+    padding: 10px;
+
+    font-size: 12px;
+
+    border-radius: 12px;
+
+}
+
+
+/* ===============================================
+   LINE POPUP
+=============================================== */
+
+.line-popup-text {
+
+    font-size: 25px;
+
+    padding:
+        11px
+        18px;
+
+    border-radius: 15px;
+
+}
+
+}
+
+/* =====================================================
+VERY SMALL PHONES
+===================================================== */
+
+@media (max-width: 380px) {
+
+.game-container {
+
+    gap: 5px;
+
+}
+
+
+.board-container {
+
+    max-width: 62vw;
+
+    height:
+        min(
+            70svh,
+            450px
+        );
+
+}
+
+
+.side-panel {
+
+    min-width: 82px;
+
+    max-width: 110px;
+
+    gap: 4px;
+
+}
+
+
+.logo {
+
+    font-size: 17px;
+
+}
+
+
+.info-card {
+
+    min-height: 44px;
+
+    padding: 5px;
+
+}
+
+
+.info-title {
+
+    font-size: 7px;
+
+}
+
+
+.info-value {
+
+    font-size: 16px;
+
+}
+
+
+.pause-btn,
+.restart-btn {
+
+    min-height: 30px;
+
+    font-size: 8px;
+
+}
+
+
+.control-btn {
+
+    width: 44px;
+
+    height: 32px;
+
+    font-size: 16px;
+
+}
+
+
+.sound-fixed {
+
+    width: 36px;
+
+    height: 36px;
+
+    font-size: 16px;
+
+}
+
+}
+
+/* =====================================================
+SHORT PHONES
+===================================================== */
+
+@media (max-width: 700px)
+and (max-height: 650px) {
+
+.game-wrapper {
+
+    padding-top:
+        calc(
+            45px +
+            env(safe-area-inset-top)
+        );
+
+}
+
+
+.board-container {
+
+    height:
+        min(
+            68svh,
+            420px
+        );
+
+    max-height:
+        calc(
+            100svh - 125px
+        );
+
+}
+
+
+.side-panel {
+
+    gap: 4px;
+
+}
+
+
+.info-card {
+
+    min-height: 40px;
+
+}
+
+
+.info-value {
+
+    font-size: 15px;
+
+}
+
+
+.pause-btn,
+.restart-btn {
+
+    min-height: 28px;
+
+}
+
+}
