@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+>
+
+<meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+>
+
+<meta
+    name="mobile-web-app-capable"
+    content="yes"
+>
+
+<title>Raa's Tetris 🎮</title>
+
+
+<!-- =================================================
+     GOOGLE FONTS
+================================================== -->
+
+<link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+>
+
+<link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+>
+
+<link
+    href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+>
+
+
+<!-- =================================================
+     CSS
+================================================== -->
+
+<link
+    rel="stylesheet"
+    href="tetris.css"
+>
+
+</head>
+
+<body>
+
+<!-- =================================================
+     BACK TO ARCADE
+================================================== -->
+
+<button
+    type="button"
+    class="back-arcade-fixed"
+    id="backButton"
+>
+    ← Back to Arcade
+</button>
+
+
+
+<!-- =================================================
+     SOUND BUTTON
+================================================== -->
+
+<button
+    type="button"
+    class="sound-fixed"
+    id="soundButton"
+    aria-label="Mute sound"
+>
+    🔊
+</button>
+
+
+
+<!-- =================================================
+     BACKGROUND MUSIC
+================================================== -->
+
+<audio
+    id="bgMusic"
+    src="audio/game.mp3"
+    autoplay
+    loop
+    preload="auto"
+></audio>
+
+
+
+<!-- =================================================
+     GAME OVER SOUND
+================================================== -->
+
+<audio
+    id="gameOverSound"
+    src="audio/gameover.mp3"
+    preload="auto"
+></audio>
+
+
+
+<!-- =================================================
+     LINE CLEAR SOUND
+================================================== -->
+
+<audio
+    id="lineClearSound"
+    src="audio/collect.mp3"
+    preload="auto"
+></audio>
+
+
+
+<!-- =================================================
+     GAME WRAPPER
+================================================== -->
+
+<div class="game-wrapper">
+
+    <div class="game-container">
+
+
+        <!-- =========================================
+             TETRIS BOARD
+        ========================================== -->
+
+        <div class="board-container">
+
+            <canvas
+                id="gameCanvas"
+                width="300"
+                height="600"
+            ></canvas>
+
+
+            <!-- =====================================
+                 GAME OVER / START / PAUSE OVERLAY
+            ====================================== -->
+
+            <div
+                class="overlay"
+                id="overlay"
+            >
+
+                <div class="overlay-box">
+
+
+                    <div
+                        class="overlay-title"
+                        id="overlayTitle"
+                    >
+                        Tetris
+                    </div>
+
+
+                    <div
+                        class="overlay-subtitle"
+                        id="overlaySubtitle"
+                    >
+                        Ready to play?
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="overlay-button start-button"
+                        id="mainOverlayButton"
+                    >
+                        Start Game
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="overlay-button cancel-button"
+                        id="overlayCancel"
+                    >
+                        No
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================
+                 LINE CLEAR POPUP
+            ====================================== -->
+
+            <div
+                class="line-popup"
+                id="linePopup"
+            >
+                <div
+                    class="line-popup-text"
+                    id="linePopupText"
+                >
+                    NICE!
+                </div>
+            </div>
+
+        </div>
+
+
+
+        <!-- =========================================
+             SIDE PANEL
+        ========================================== -->
+
+        <div class="side-panel">
+
+
+            <!-- LOGO -->
+
+            <div class="logo">
+
+                Raa's
+
+                <span>Tetris</span>
+
+                🎮
+
+            </div>
+
+
+
+            <!-- SCORE -->
+
+            <div class="info-card">
+
+                <div class="info-title">
+                    SCORE
+                </div>
+
+                <div
+                    class="info-value"
+                    id="score"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+
+            <!-- LINES -->
+
+            <div class="info-card">
+
+                <div class="info-title">
+                    LINES
+                </div>
+
+                <div
+                    class="info-value"
+                    id="lines"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+
+            <!-- LEVEL -->
+
+            <div class="info-card">
+
+                <div class="info-title">
+                    LEVEL
+                </div>
+
+                <div
+                    class="info-value"
+                    id="level"
+                >
+                    1
+                </div>
+
+            </div>
+
+
+
+            <!-- NEXT PIECE -->
+
+            <div class="info-card next-card">
+
+                <div class="next-title">
+                    NEXT
+                </div>
+
+                <canvas
+                    id="nextCanvas"
+                    width="120"
+                    height="120"
+                ></canvas>
+
+            </div>
+
+
+
+            <!-- PAUSE -->
+
+            <button
+                type="button"
+                class="button pause-btn"
+                id="pauseButton"
+            >
+                ⏸ Pause
+            </button>
+
+
+
+            <!-- RESTART -->
+
+            <button
+                type="button"
+                class="button restart-btn"
+                id="restartButton"
+            >
+                ↻ Restart
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         MOBILE CONTROLS
+    ================================================== -->
+
+    <div class="mobile-controls">
+
+
+        <div class="mobile-row">
+
+            <button
+                type="button"
+                class="control-btn"
+                id="leftButton"
+            >
+                ←
+            </button>
+
+
+            <button
+                type="button"
+                class="control-btn"
+                id="rotateButton"
+            >
+                ↻
+            </button>
+
+
+            <button
+                type="button"
+                class="control-btn"
+                id="rightButton"
+            >
+                →
+            </button>
+
+        </div>
+
+
+        <div class="mobile-row">
+
+            <button
+                type="button"
+                class="control-btn"
+                id="downButton"
+            >
+                ↓
+            </button>
+
+
+            <button
+                type="button"
+                class="control-btn"
+                id="dropButton"
+            >
+                ⬇
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =================================================
+     JAVASCRIPT
+================================================== -->
+
+<script src="tetris.js"></script>
+
+</body>
+
+</html>
