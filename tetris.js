@@ -27,7 +27,9 @@ const BLOCK = 30;
 const SAND_SIZE = 3;
 const SAND_GAP = 1;
 
-const PARTICLES_PER_BLOCK = 55;
+const PARTICLES_PER_BLOCK = 28;
+
+const MAX_SAND_PARTICLES = 7000;
 
 const SAND_GRAVITY = 0.18;
 const SAND_MAX_SPEED = 2.8;
