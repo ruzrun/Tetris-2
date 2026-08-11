@@ -770,7 +770,8 @@ function particleBlocked(
     */
 
     if (
-        newY + particle.size >=
+        newY +
+        particle.size >=
         canvas.height
     ) {
 
@@ -785,7 +786,8 @@ function particleBlocked(
 
     if (
         newX < 0 ||
-        newX + particle.size >
+        newX +
+        particle.size >
         canvas.width
     ) {
 
@@ -795,25 +797,24 @@ function particleBlocked(
 
 
     /*
-       Check nearby sand particles.
+       Only check nearby particles.
 
-       Only inspect nearby particles,
-       not the whole field.
+       This is MUCH faster than checking
+       every particle in the entire game.
     */
 
+    const nearby =
+        getNearbyParticles(
+            particle
+        );
+
+
     for (
-        const other of sandParticles
+        const other of nearby
     ) {
 
         if (
-            other === particle ||
-            other.settled === false &&
-            Math.abs(
-                other.x - newX
-            ) > 10 &&
-            Math.abs(
-                other.y - newY
-            ) > 10
+            other === particle
         ) {
 
             continue;
@@ -821,33 +822,36 @@ function particleBlocked(
         }
 
 
-        const horizontal =
-            Math.abs(
-                (
-                    other.x +
-                    other.size / 2
-                ) -
-                (
-                    newX +
-                    particle.size / 2
-                )
+        const dx =
+            (
+                other.x +
+                other.size / 2
+            ) -
+            (
+                newX +
+                particle.size / 2
             );
 
 
-        const vertical =
-            Math.abs(
-                (
-                    other.y +
-                    other.size / 2
-                ) -
-                (
-                    newY +
-                    particle.size / 2
-                )
+        const dy =
+            (
+                other.y +
+                other.size / 2
+            ) -
+            (
+                newY +
+                particle.size / 2
             );
 
 
-        const minimum =
+        const distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+
+        const minimumDistance =
             (
                 other.size +
                 particle.size
@@ -855,8 +859,8 @@ function particleBlocked(
 
 
         if (
-            horizontal < minimum &&
-            vertical < minimum
+            distance <
+            minimumDistance
         ) {
 
             return true;
@@ -870,29 +874,29 @@ function particleBlocked(
 
 }
 
-
 /* =====================================================
    UPDATE SAND PARTICLES
 ===================================================== */
 
 function updateSand(deltaTime) {
 
-    /*
-       Convert delta time to a sensible
-       physics multiplier.
-    */
-
     const dt =
         Math.min(
             deltaTime / 16.67,
-            2
+            1.5
         );
 
 
     /*
+       Rebuild the spatial grid once
+       before moving particles.
+    */
+
+    rebuildSandSpatialGrid();
+
+
+    /*
        Bottom particles first.
-       This makes the pile feel much
-       more stable.
     */
 
     sandParticles.sort(
@@ -909,7 +913,24 @@ function updateSand(deltaTime) {
             particle.settled
         ) {
 
-            continue;
+            /*
+               Occasionally wake particles
+               so piles can still shift.
+            */
+
+            if (
+                Math.random() < 0.006
+            ) {
+
+                particle.settled =
+                    false;
+
+            }
+            else {
+
+                continue;
+
+            }
 
         }
 
@@ -929,19 +950,11 @@ function updateSand(deltaTime) {
             );
 
 
-        /*
-           Slight horizontal friction
-        */
-
-        particle.vx *=
-            0.96;
-
-
         let moved = false;
 
 
         /*
-           Try moving downward.
+           Move down
         */
 
         const downY =
@@ -985,15 +998,12 @@ function updateSand(deltaTime) {
                 const slideX =
                     particle.x +
                     direction *
-                    (
-                        particle.size *
-                        0.9
-                    );
+                    2.2;
+
 
                 const slideY =
                     particle.y +
-                    particle.size *
-                    0.8;
+                    1.5;
 
 
                 if (
@@ -1010,7 +1020,7 @@ function updateSand(deltaTime) {
                     particle.y =
                         slideY;
 
-                    particle.vy *=
+                    particle.vy =
                         0.5;
 
                     moved = true;
@@ -1025,8 +1035,9 @@ function updateSand(deltaTime) {
 
 
         /*
-           If it cannot move anywhere,
-           let it settle.
+           Nothing underneath?
+
+           Let the grain settle.
         */
 
         if (!moved) {
@@ -1041,7 +1052,7 @@ function updateSand(deltaTime) {
 
 
         /*
-           Keep particles inside walls.
+           Keep inside board.
         */
 
         if (
@@ -1069,60 +1080,27 @@ function updateSand(deltaTime) {
 
 
     /*
-       Occasionally wake nearby particles.
+       Safety limit.
 
-       This prevents the pile from becoming
-       permanently frozen.
+       If something somehow creates too
+       many particles, remove the oldest
+       ones rather than freezing the browser.
     */
 
     if (
-        Math.random() < 0.035
+        sandParticles.length >
+        MAX_SAND_PARTICLES
     ) {
 
-        const amount =
-            Math.min(
-                12,
-                sandParticles.length
+        sandParticles =
+            sandParticles.slice(
+                sandParticles.length -
+                MAX_SAND_PARTICLES
             );
-
-
-        for (
-            let i = 0;
-            i < amount;
-            i++
-        ) {
-
-            const particle =
-                sandParticles[
-                    Math.floor(
-                        Math.random() *
-                        sandParticles.length
-                    )
-                ];
-
-
-            particle.settled =
-                false;
-
-        }
 
     }
 
-
-    /*
-       Remove particles that have fallen
-       far outside the board.
-    */
-
-    sandParticles =
-        sandParticles.filter(
-            particle =>
-                particle.y <
-                canvas.height + 20
-        );
-
 }
-
 
 /* =====================================================
    SNAP PARTICLES TO ROWS FOR LINE CLEAR
